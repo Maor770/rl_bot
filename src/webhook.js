@@ -151,16 +151,23 @@ async function handleWebhookPayload(payload, phoneNumberId) {
     for (const change of (entry.changes || [])) {
       const value = change.value || {};
 
-      // Phone number ID filter — ignore webhooks meant for other bots
-      if (phoneNumberId && value.metadata?.phone_number_id !== phoneNumberId) continue;
+      // Phone number ID filter — only skip if BOTH sides have a value AND they differ
+      const incomingId = value.metadata?.phone_number_id;
+      if (phoneNumberId && incomingId && incomingId !== phoneNumberId) {
+        console.log(`[Webhook] Skipping — phone_id ${incomingId} != ours ${phoneNumberId}`);
+        continue;
+      }
 
       const messages = value.messages || [];
       const contacts = value.contacts || [];
+      console.log(`[Webhook] Processing ${messages.length} message(s)`);
+
       for (const message of messages) {
+        console.log(`[Webhook] From: ${message.from}, type: ${message.type}`);
         try {
           await handleIncomingMessage(message, contacts[0] || {});
         } catch (err) {
-          console.error('[Webhook] handleIncomingMessage error:', err.message, err.stack);
+          console.error('[Webhook] Error:', err.message, err.stack);
           const { notifyAdmin } = require('./modules/admin');
           await notifyAdmin(`Error for ${message.from}: ${err.message}`).catch(() => {});
         }
