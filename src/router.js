@@ -33,7 +33,7 @@ async function sendWelcomeAndMainMenu(userId) {
     { id: 'main_story',     title: 'סיפורים ודפי צביעה 🎨' },
   ], { action: 'main_menu_buttons_1' });
 
-  await wa.sendButtonsAndLog(userId, '‏', [
+  await wa.sendButtonsAndLog(userId, 'ועוד:', [
     { id: 'main_niggun',   title: 'זמן ניגונים 🎵' },
     { id: 'main_holidays', title: 'חגים וימי דפגרא 📅' },
     { id: 'game_referral', title: 'שתף וזכה 📲' },
@@ -49,7 +49,7 @@ async function sendMainMenuButtonsOnly(userId) {
     { id: 'main_story',    title: 'סיפורים ודפי צביעה 🎨' },
   ], { action: 'main_menu_buttons_1_fastonly' });
 
-  await wa.sendButtonsAndLog(userId, '‏', [
+  await wa.sendButtonsAndLog(userId, 'ועוד:', [
     { id: 'main_niggun',   title: 'זמן ניגונים 🎵' },
     { id: 'main_holidays', title: 'חגים וימי דפגרא 📅' },
     { id: 'game_referral', title: 'שתף וזכה 📲' },
