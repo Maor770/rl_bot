@@ -9,9 +9,9 @@ const config = require('../config');
 
 function videoMatchesListKey(video, listKey) {
   const v = video || {};
-  const g = normalizeHebrewSearch(v['Bot Group'] || '');
-  const c = normalizeHebrewSearch(v['Bot Category'] || '');
-  const s = normalizeHebrewSearch(v['Bot Subcategory'] || '');
+  const g = normalizeHebrewSearch(v['VD Categories'] || '');
+  const c = normalizeHebrewSearch(v['Bot Main Category'] || '');
+  const s = normalizeHebrewSearch(v['Bot Sub Category'] || '');
 
   const eq = (a, b) => normalizeHebrewSearch(a) === normalizeHebrewSearch(b);
 
@@ -53,9 +53,9 @@ async function getItemsForListKey(listKey, state) {
   if (listKey.startsWith('rebbe:')) {
     const rebbeName = listKey.substring('rebbe:'.length);
     return index.filter(v =>
-      normalizeHebrewSearch(v['Bot Group']) === normalizeHebrewSearch('סיפורים') &&
-      normalizeHebrewSearch(v['Bot Category']) === normalizeHebrewSearch('רבותינו נשיאינו') &&
-      normalizeHebrewSearch(v['Bot Subcategory']) === normalizeHebrewSearch(rebbeName)
+      normalizeHebrewSearch(v['VD Categories']) === normalizeHebrewSearch('סיפורים') &&
+      normalizeHebrewSearch(v['Bot Main Category']) === normalizeHebrewSearch('רבותינו נשיאינו') &&
+      normalizeHebrewSearch(v['Bot Sub Category']) === normalizeHebrewSearch(rebbeName)
     );
   }
 
