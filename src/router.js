@@ -122,7 +122,7 @@ async function routeSelection(userId, id, title) {
       return sendSimpleListMenu(userId, 'menu_niggun', '🎵 זמן ניגונים - בחרו נושא:', [
         ['niggun_holidays', 'ניגוני חגים 📅',            'ניגונים של חגים ודפגרא'],
         ['niggun_moshiach', 'ניגוני משיח וגאולה 🚀',     'ניגוני גאולה ומשיח'],
-        ['niggun_nesiim',   'ניגוני רבותינו נשיאינו 👑', 'ניגונים של הרביים'],
+        ['niggun_nesiim',   'ניגוני רבותינו 👑',          'ניגונים של הרביים'],
         ['niggun_simcha',   'ניגוני שמחה 🎉',            'שמחה וריקוד'],
         ['niggun_dveikus',  'ניגוני דבקות 💓',           'התעוררות ורגש'],
         ['niggun_chabad',   'ניגוני חב״ד 🎼',            'ניגונים קלאסיים'],
