@@ -5,6 +5,10 @@ const wa = require('../whatsapp');
 const { normalizePhone, nowString, parseHebrewBirthday, normalizeHebrewSearch } = require('../utils');
 const config = require('../config');
 const dayjs = require('dayjs');
+const timezone = require('dayjs/plugin/timezone');
+const utc = require('dayjs/plugin/utc');
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 // ── RAFFLE DATE ───────────────────────────────────────────────────────────────
 
@@ -70,15 +74,55 @@ async function showChildGameMenu(userId, childId) {
   if (!child) return startDailyGameFlow(userId);
   await db.setUserState(userId, { activeChildId: childId });
 
+  // הודעה ראשונה — 3 כפתורי משחק
   await wa.sendButtonsAndLog(userId,
-    `היי *${child.name}*! 👋\nיש לך בקופה *${child.diamonds} יהלומים* 💎\n\nמה תרצו לעשות עכשיו?`,
+    `היי *${child.name}*! 👋\nיש לך בארנק *${child.diamonds} יהלומים* 💎\n\nמה תרצו לעשות עכשיו?`,
     [
       { id: 'game_missions', title: 'המשימות היומיות 🎯' },
-      { id: 'game_trivia', title: 'משחק טריוויה 🧠' },
+      { id: 'game_trivia',   title: 'משחק טריוויה 🧠' },
       { id: 'game_referral', title: 'שתף וזכה 📲' },
     ],
     { action: 'game_child_menu', childId, diamonds: child.diamonds }
   );
+
+  // הודעה שנייה — דירוג + הגדרות + הסבר
+  await wa.sendButtonsAndLog(userId, '‏', [
+    { id: 'game_leaderboard', title: 'הדירוג שלי 🏆' },
+    { id: 'game_settings',    title: 'הגדרות ⚙️' },
+    { id: 'game_explain',     title: 'איך המשחק עובד? ℹ️' },
+  ], { action: 'game_child_menu_2', childId });
+}
+
+// ── GAME EXPLANATION ──────────────────────────────────────────────────────────
+
+async function sendGameExplanation(userId) {
+  await wa.sendTextAndLog(userId,
+    '🎮 *איך עובד המשחק היומי של רבי לילדים?*\n\n' +
+    '"רבי לילדים" רוצה לעזור לחסידים הקטנים למלא את הזמן הפנוי שלהם בחוויה חסידית אמיתית — ולזכות בפרסים על הדרך! 🏆\n\n' +
+    '*💎 יהלומים*\n' +
+    'בכל פעם שתשלימו משימה או תענו נכון על שאלת טריוויה — תרוויחו יהלומים לארנק שלכם.\n\n' +
+    '*🎯 משימות יומיות*\n' +
+    'כל יום מחכות לכם משימות קבועות ובסיסיות — השלימו אותן וקבלו יהלומים!\n\n' +
+    '*🧠 טריוויה יומית*\n' +
+    'כל יום יש 9 שאלות מתוך תוכנית אחת של רבי לילדים, בשלוש רמות קושי — קל, בינוני וקשה. שימו לב — יש רק הזדמנות אחת לכל שאלה!\n\n' +
+    '*🎟️ שתי הגרלות — כל שבוע!*\n' +
+    'כל 500 יהלומים = כרטיס אחד להגרלה. ככל שיש לכם יותר — יותר סיכויים!\n\n' +
+    '🔹 *הגרלת יהלומים* — באמצע השבוע\n' +
+    '🔹 *הגרלת שיתופים* — במוצאי שבת\n\n' +
+    'שתי הגרלות נפרדות לחלוטין — אפשר לזכות בשתיהן! 🎉\n\n' +
+    '*📲 שיתוף*\n' +
+    'כל מי שמצטרף דרך הקישור האישי שלכם — נותן לכם כרטיס נוסף להגרלת השיתופים!',
+    { action: 'game_explain' }
+  );
+
+  const state = await db.getUserState(userId);
+  const childId = state.activeChildId;
+  if (childId) {
+    await wa.sendButtonsAndLog(userId, '‏', [
+      { id: `select_child:${childId}`, title: 'חזרה למשחק 🎲' },
+      { id: 'nav_home', title: 'תפריט ראשי 🏠' },
+    ], { action: 'game_explain_nav' });
+  }
 }
 
 // ── ONBOARDING STATE MACHINE ──────────────────────────────────────────────────
@@ -120,9 +164,9 @@ async function handleOnboardingFlow(userId, input, state) {
     await wa.sendButtonsAndLog(userId,
       `מעולה! הפרופיל של *${childName2}* מוכן! 🎉\n\nמה תרצו לעשות עכשיו?`,
       [
-        { id: 'game_add_child', title: 'הוסף ילד נוסף ➕' },
-        { id: 'game_set_reminders', title: 'הגדרת תזכורות ⏰' },
-        { id: `select_child:${childId}`, title: 'התחל לשחק 🎲' },
+        { id: 'game_set_reminders',       title: 'הגדרת תזכורות ⏰' },
+        { id: `select_child:${childId}`,  title: 'התחל לשחק 🎲' },
+        { id: 'game_add_child',           title: 'הוסף ילד נוסף ➕' },
       ],
       { action: 'game_profile_ready', childId }
     );
@@ -210,9 +254,9 @@ async function showEditChildMenu(userId) {
   await wa.sendButtonsAndLog(userId,
     `✏️ *עריכת פרופיל של ${child.name}*\n\nמה תרצו לשנות?`,
     [
-      { id: 'game_edit_name', title: 'שינוי שם ✏️' },
+      { id: 'game_edit_name',     title: 'שינוי שם ✏️' },
       { id: 'game_edit_birthday', title: 'שינוי תאריך לידה 🎂' },
-      { id: 'game_settings', title: 'חזרה להגדרות ⚙️' },
+      { id: 'game_settings',      title: 'חזרה להגדרות ⚙️' },
     ],
     { action: 'game_edit_child_menu', childId }
   );
@@ -279,15 +323,22 @@ async function executeActionMission(userId, missionId) {
   const childId = state.activeChildId;
   if (!childId) return startDailyGameFlow(userId);
   if (await db.checkIfCompleted(childId, missionId)) return;
+
   const mission = await getMissionById(missionId);
   const reward = mission ? Number(mission.reward || 10) : 10;
   const successMsg = mission ? (mission.successMessage || 'כל הכבוד!') : 'כל הכבוד!';
   const child = await db.getChildById(childId);
+
   await db.rewardDiamonds(childId, reward, 'Action_Mission', missionId, child?.phone || userId);
   await db.markCompleted(childId, missionId);
+
+  // שליפת יתרה עדכנית
+  const updatedChild = await db.getChildById(childId);
+  const totalDiamonds = updatedChild ? updatedChild.diamonds : '?';
+
   const nextRaffle = await getNextRaffleDateText();
   await wa.sendButtonsAndLog(userId,
-    `🌟 ${successMsg}\nהוספתי *${reward} יהלומים* 💎 לקופה שלכם!` +
+    `🌟 ${successMsg}\nהוספתי *${reward} יהלומים* לארנק שלך, יש לך *${totalDiamonds} יהלומים*! 💎` +
     (nextRaffle ? `\n\n🎟️ *הגרלת היהלומים* הבאה: *${nextRaffle}*` : ''),
     [
       { id: 'game_missions', title: 'משימה נוספת 🎯' },
@@ -325,7 +376,7 @@ async function showDailyTriviaProgram(userId) {
   }
   const btns = [];
   if (hasEasy) btns.push({ id: `triv_lvl:${activeProgNum}:קל`, title: 'קל 🟢' });
-  if (hasMed) btns.push({ id: `triv_lvl:${activeProgNum}:בינוני`, title: 'בינוני 🟡' });
+  if (hasMed)  btns.push({ id: `triv_lvl:${activeProgNum}:בינוני`, title: 'בינוני 🟡' });
   if (hasHard) btns.push({ id: `triv_lvl:${activeProgNum}:קשה`, title: 'קשה 🔴' });
   if (!btns.length) {
     Object.keys(exactLevelStrings).slice(0, 3).forEach(k => {
@@ -388,16 +439,24 @@ async function evaluateTriviaAnswer(userId, missionId, answerNum) {
   if (rawCorrect === 'א' || rawCorrect === '1' || rawCorrect === q.option1) expected = '1';
   else if (rawCorrect === 'ב' || rawCorrect === '2' || rawCorrect === q.option2) expected = '2';
   else if (rawCorrect === 'ג' || rawCorrect === '3' || rawCorrect === q.option3) expected = '3';
+
   const isCorrect = String(answerNum) === expected;
   const sourceText = q.source ? `\n💡 *מקור:* ${q.source}` : '';
   const child = await db.getChildById(childId);
+
   await db.markCompleted(childId, missionId);
   await db.setUserState(userId, { activeMissionId: '' });
+
   if (isCorrect) {
     await db.rewardDiamonds(childId, q.reward, 'Trivia', missionId, child?.phone || userId);
+
+    // שליפת יתרה עדכנית
+    const updatedChild = await db.getChildById(childId);
+    const totalDiamonds = updatedChild ? updatedChild.diamonds : '?';
+
     const nextRaffle = await getNextRaffleDateText();
     await wa.sendButtonsAndLog(userId,
-      `🎉 תשובה נכונה!\nהוספתי *${q.reward} יהלומים* 💎!${sourceText}` +
+      `🎉 תשובה נכונה!\nהוספתי *${q.reward} יהלומים* לארנק שלך, יש לך *${totalDiamonds} יהלומים*! 💎${sourceText}` +
       (nextRaffle ? `\n🎟️ *הגרלת היהלומים* הבאה: *${nextRaffle}*` : ''),
       [
         { id: 'game_trivia', title: 'שאלה נוספת 🔄' },
@@ -496,11 +555,11 @@ async function processReferral(newUserId, referrerPhone) {
 
 async function sendGameSettings(userId) {
   await wa.sendListAndLog(userId, '⚙️ *הגדרות המשחק היומי:*', 'בחר', 'הגדרות', [
-    { id: 'game_turn_off_reminders', title: 'כבה תזכורות 🔕', description: '' },
-    { id: 'game_turn_on_reminders',  title: 'הפעל תזכורות 🔔', description: '' },
-    { id: 'game_change_reminder',    title: 'שנה שעת תזכורת ⏰', description: '' },
-    { id: 'game_edit_child',         title: 'ערוך פרופיל ילד ✏️', description: 'שנה שם או תאריך לידה' },
-    { id: 'game_add_child',          title: 'הוסף ילד נוסף ➕', description: '' },
+    { id: 'game_turn_off_reminders', title: 'כבה תזכורות 🔕',      description: '' },
+    { id: 'game_turn_on_reminders',  title: 'הפעל תזכורות 🔔',     description: '' },
+    { id: 'game_change_reminder',    title: 'שנה שעת תזכורת ⏰',   description: '' },
+    { id: 'game_edit_child',         title: 'ערוך פרופיל ילד ✏️',  description: 'שנה שם או תאריך לידה' },
+    { id: 'game_add_child',          title: 'הוסף ילד נוסף ➕',     description: '' },
   ], { action: 'game_settings' });
 }
 
@@ -639,5 +698,5 @@ module.exports = {
   showLeaderboard, showShareMenu, sendShareForGroups, sendShareForStatus,
   processReferral, sendGameSettings, startReminderTimeSetup,
   executeRaffle, sendFomoReminders, sendScheduledReminders,
-  getTodayRaffleType, getNextRaffleDateText, getShareLink,
+  getTodayRaffleType, getNextRaffleDateText, getShareLink, sendGameExplanation,
 };

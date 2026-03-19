@@ -5,7 +5,7 @@ const { normalizePhone, extractContactName, isGreetingText, isMenuRequestText, n
 const { routeSelection, sendWelcomeAndMainMenu, sendMainMenuButtonsOnly, handleFreeText } = require('./router');
 const { sendVideoByNumber } = require('./modules/videos');
 const { detectNoise } = require('./modules/search');
-const { processReferral, handleOnboardingFlow, deactivateReminders } = require('./modules/game');
+const { processReferral, handleOnboardingFlow } = require('./modules/game');
 const { insertLog } = require('./db/postgres');
 const config = require('./config');
 
@@ -35,7 +35,6 @@ async function handleIncomingMessage(message, contact) {
   const from = normalizePhone(message.from || '');
   if (!from) return;
 
-  // Log raw inbound
   await insertLog('inbound', from, getMessageText(message), message.type || 'unknown', {});
 
   const profileName = extractContactName(contact);
@@ -43,42 +42,41 @@ async function handleIncomingMessage(message, contact) {
   const btnTitle = message?.interactive?.button_reply?.title || message?.interactive?.list_reply?.title || '';
   const textBody = getMessageText(message);
 
-  // Load state BEFORE touching user
-  const state = await db.getUserState(from);
-  const hasSeenWelcome    = !!state.hasSeenWelcome;
-  const lastInteractionMs = Number(state.lastInteractionMs || 0);
-  const now               = Date.now();
-  const isReturningAfterBreak = hasSeenWelcome && lastInteractionMs > 0 && (now - lastInteractionMs) >= SESSION_TIMEOUT_MS;
-
-  // ── IMMEDIATE ACK (text messages only, not button replies) ──────────────────
-  if (!btnId) {
-    const ackText = String(textBody || '').trim();
-    if (ackText) {
-      try {
-        if (isGreetingText(ackText) || isMenuRequestText(ackText) || !hasSeenWelcome) {
-          await wa.sendText(from, '🎉 ברוכים הבאים לבוט החדש של *"רבי לילדים"*!\nרגע אחד — מכין עבורכם את התפריט... ✨');
-        } else if (!isReturningAfterBreak && !state.expectedInput) {
-          await wa.sendText(from, '🔎 מחפש עבורך...');
-        }
-      } catch (e) {
-        console.error('[Webhook] ACK error:', e.message);
-      }
-    }
-  }
-
-  // Update lastInteractionMs + upsert user
-  await db.setUserState(from, { lastInteractionMs: now });
-  await db.upsertUser(from, profileName);
-
-  // ── BUTTON / LIST REPLY ─────────────────────────────────────────────────────
+  // ── BUTTON / LIST REPLY ───────────────────────────────────────────────────
   if (btnId) {
+    await db.upsertUser(from, profileName);
+    await db.setUserState(from, { lastInteractionMs: Date.now() });
     return routeSelection(from, btnId, btnTitle);
   }
 
   const normalized = String(textBody || '').trim();
   if (!normalized) return;
 
-  // ── REFERRAL ────────────────────────────────────────────────────────────────
+  // ── VERSION COMMAND ───────────────────────────────────────────────────────
+  if (normalizeHebrewSearch(normalized) === 'version') {
+    let deployedAt = 'לא ידוע';
+    try {
+      deployedAt = require('./version.js');
+      const d = new Date(deployedAt);
+      deployedAt = d.toLocaleString('he-IL', { timeZone: config.TZ });
+    } catch (e) {}
+    return wa.sendText(from,
+      `⚙️ *רבי לילדים Bot*\n📦 גרסה: 13.1.0\n📅 עודכן: ${deployedAt}\n✅ סטטוס: פעיל`
+    );
+  }
+
+  // Load state
+  const state = await db.getUserState(from);
+  const hasSeenWelcome    = !!state.hasSeenWelcome;
+  const lastInteractionMs = Number(state.lastInteractionMs || 0);
+  const now               = Date.now();
+  const isReturningAfterBreak = hasSeenWelcome && lastInteractionMs > 0 && (now - lastInteractionMs) >= SESSION_TIMEOUT_MS;
+
+  // Update user
+  await db.setUserState(from, { lastInteractionMs: now });
+  await db.upsertUser(from, profileName);
+
+  // ── REFERRAL ──────────────────────────────────────────────────────────────
   if (normalized.startsWith('שלום הגעתי דרך')) {
     const rawReferrer = normalized.replace('שלום הגעתי דרך', '').trim();
     const referrerPhone = normalizePhone(rawReferrer.replace(/[^\d]/g, ''));
@@ -88,25 +86,25 @@ async function handleIncomingMessage(message, contact) {
     return sendWelcomeAndMainMenu(from);
   }
 
-  // ── OPT OUT ─────────────────────────────────────────────────────────────────
+  // ── OPT OUT ───────────────────────────────────────────────────────────────
   const optOutWords = ['הסר', 'עצור', 'די', 'stop'];
   if (optOutWords.includes(normalizeHebrewSearch(normalized))) {
     await db.deactivateReminders(from);
-    return wa.sendTextAndLog(from, 'הבנתי! עצרתי את התזכורות היומיות. תוכלו להפעיל אותן מחדש דרך תפריט המשחק היומי 🤫', { action: 'opt_out_reminders' });
+    return wa.sendTextAndLog(from, 'הבנתי! עצרתי את התזכורות היומיות. תוכלו להפעיל אותן מחדש דרך הגדרות המשחק 🤫', { action: 'opt_out_reminders' });
   }
 
-  // ── GREETING / MENU ─────────────────────────────────────────────────────────
+  // ── GREETING / MENU ───────────────────────────────────────────────────────
   if (isGreetingText(normalized) || isMenuRequestText(normalized)) {
     return sendWelcomeAndMainMenu(from);
   }
 
-  // ── ONBOARDING STATE MACHINE ────────────────────────────────────────────────
+  // ── ONBOARDING STATE MACHINE ──────────────────────────────────────────────
   const freshState = await db.getUserState(from);
   if (freshState.expectedInput) {
     return handleOnboardingFlow(from, normalized, freshState);
   }
 
-  // ── NEW USER ────────────────────────────────────────────────────────────────
+  // ── NEW USER ──────────────────────────────────────────────────────────────
   if (!hasSeenWelcome) {
     await sendWelcomeAndMainMenu(from);
     await wa.sendTextAndLog(from,
@@ -116,7 +114,7 @@ async function handleIncomingMessage(message, contact) {
     return;
   }
 
-  // ── RETURNING AFTER BREAK ───────────────────────────────────────────────────
+  // ── RETURNING AFTER BREAK ─────────────────────────────────────────────────
   if (isReturningAfterBreak) {
     await db.setUserState(from, { pendingQuery: normalized });
     return wa.sendButtonsAndLog(from,
@@ -130,18 +128,18 @@ async function handleIncomingMessage(message, contact) {
     );
   }
 
-  // ── VIDEO BY NUMBER ─────────────────────────────────────────────────────────
+  // ── VIDEO BY NUMBER ───────────────────────────────────────────────────────
   const numMatch = normalized.match(/(?:וידאו|סרטון|תכנית|פרק|מספר)\s*(?:מספר\s*)?(\d+)/);
   if (numMatch) return sendVideoByNumber(from, numMatch[1]);
 
-  // ── NOISE DETECTION ─────────────────────────────────────────────────────────
+  // ── NOISE DETECTION ───────────────────────────────────────────────────────
   const noiseResponse = detectNoise(normalizeHebrewSearch(normalized));
   if (noiseResponse) {
     await wa.sendTextAndLog(from, noiseResponse, { action: 'noise_response', query: normalized });
     return sendMainMenuButtonsOnly(from);
   }
 
-  // ── FREE TEXT SEARCH ────────────────────────────────────────────────────────
+  // ── FREE TEXT SEARCH ──────────────────────────────────────────────────────
   return handleFreeText(from, profileName, normalized);
 }
 
@@ -151,7 +149,6 @@ async function handleWebhookPayload(payload, phoneNumberId) {
     for (const change of (entry.changes || [])) {
       const value = change.value || {};
 
-      // Phone number ID filter — only skip if BOTH sides have a value AND they differ
       const incomingId = value.metadata?.phone_number_id;
       if (phoneNumberId && incomingId && incomingId !== phoneNumberId) {
         console.log(`[Webhook] Skipping — phone_id ${incomingId} != ours ${phoneNumberId}`);

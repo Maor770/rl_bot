@@ -1,16 +1,16 @@
 {
   "name": "rl_bot",
-  "version": "13.0.0",
+  "version": "13.1.0",
   "description": "רבי לילדים WhatsApp Bot",
   "main": "src/index.js",
   "scripts": {
+    "build": "node -e \"require('fs').writeFileSync('src/version.js', 'module.exports = \\\"' + new Date().toISOString() + '\\\";')\"",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
   "dependencies": {
     "axios": "^1.7.2",
     "dayjs": "^1.11.11",
-    "dayjs-plugin-utc": "^0.1.2",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "googleapis": "^140.0.1",

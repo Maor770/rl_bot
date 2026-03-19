@@ -20,6 +20,7 @@ async function sendWelcomeAndMainMenu(userId) {
   });
 
   const welcomeText =
+    '🎉 ברוכים הבאים לבוט החדש של *"רבי לילדים"*!\n\n' +
     '🎮 *חדש! המשחק היומי של רבי לילדים!*\n' +
     'משימות יומיות, משחק טריוויה ופרסים אמיתיים!\n\n' +
     '🎬 *ספריית הסרטונים מחכה לך!*\n' +
@@ -27,13 +28,13 @@ async function sendWelcomeAndMainMenu(userId) {
     "💡 לדוגמה:\nסיפור מר' לויק לפסח";
 
   await wa.sendButtonsAndLog(userId, welcomeText, [
-    { id: 'main_general', title: '👈 המשחק היומי 🎮' },
-    { id: 'main_moshiach', title: 'לחיות משיח 🚀' },
-    { id: 'main_story', title: 'סיפורים ודפי צביעה 🎨' },
+    { id: 'main_general',   title: '👈 המשחק היומי 🎮' },
+    { id: 'main_moshiach',  title: 'לחיות משיח 🚀' },
+    { id: 'main_story',     title: 'סיפורים ודפי צביעה 🎨' },
   ], { action: 'main_menu_buttons_1' });
 
   await wa.sendButtonsAndLog(userId, '‏', [
-    { id: 'main_niggun', title: 'זמן ניגונים 🎵' },
+    { id: 'main_niggun',   title: 'זמן ניגונים 🎵' },
     { id: 'main_holidays', title: 'חגים וימי דפגרא 📅' },
     { id: 'game_referral', title: 'שתף וזכה 📲' },
   ], { action: 'main_menu_buttons_2' });
@@ -43,13 +44,13 @@ async function sendMainMenuButtonsOnly(userId) {
   await db.setUserState(userId, { lastMenu: '', currentListKey: '', currentListTitle: '', currentOffset: 0 });
 
   await wa.sendButtonsAndLog(userId, 'בחרו נושא מהכפתורים, או פשוט כתבו מה אתם מחפשים.', [
-    { id: 'main_general', title: '👈 המשחק היומי 🎮' },
+    { id: 'main_general',  title: '👈 המשחק היומי 🎮' },
     { id: 'main_moshiach', title: 'לחיות משיח 🚀' },
-    { id: 'main_story', title: 'סיפורים ודפי צביעה 🎨' },
+    { id: 'main_story',    title: 'סיפורים ודפי צביעה 🎨' },
   ], { action: 'main_menu_buttons_1_fastonly' });
 
   await wa.sendButtonsAndLog(userId, '‏', [
-    { id: 'main_niggun', title: 'זמן ניגונים 🎵' },
+    { id: 'main_niggun',   title: 'זמן ניגונים 🎵' },
     { id: 'main_holidays', title: 'חגים וימי דפגרא 📅' },
     { id: 'game_referral', title: 'שתף וזכה 📲' },
   ], { action: 'main_menu_buttons_2_fastonly' });
@@ -103,48 +104,48 @@ async function routeSelection(userId, id, title) {
   switch (sid) {
     case 'main_moshiach':
       return sendSimpleListMenu(userId, 'menu_moshiach', '🚀 לחיות משיח - בחרו נושא:', [
-        ['moshiach_bring', 'מביאים את משיח 🚀', 'מה כל ילד יכול לעשות'],
-        ['moshiach_temple', 'בית המקדש והגאולה 🏛️', 'מה יהיה בגאולה'],
-        ['moshiach_rebbe', 'הרבי כמלך המשיח 👑', 'נשיא הדור והגאולה'],
-        ['moshiach_geulah_life', 'חיים של גאולה 🌍', 'לחיות גאולה עכשיו'],
+        ['moshiach_bring',      'מביאים את משיח 🚀',        'מה כל ילד יכול לעשות'],
+        ['moshiach_temple',     'בית המקדש והגאולה 🏛️',     'מה יהיה בגאולה'],
+        ['moshiach_rebbe',      'הרבי כמלך המשיח 👑',       'נשיא הדור והגאולה'],
+        ['moshiach_geulah_life','חיים של גאולה 🌍',          'לחיות גאולה עכשיו'],
       ]);
 
     case 'main_story':
       await db.setUserState(userId, { lastMenu: 'story_root' });
       return wa.sendButtonsAndLog(userId, '📖 שעת סיפור ודפי צביעה - בחרו קבוצה:', [
-        { id: 'story_kedumim', title: 'מקורות קדומים 📜' },
-        { id: 'story_nesiim', title: 'רבותינו נשיאינו 👑' },
-        { id: 'story_chassidim', title: 'סיפורי חסידים 🕯️' },
+        { id: 'story_kedumim',  title: 'מקורות קדומים 📜' },
+        { id: 'story_nesiim',   title: 'רבותינו נשיאינו 👑' },
+        { id: 'story_chassidim',title: 'סיפורי חסידים 🕯️' },
       ], { action: 'story_root' });
 
     case 'main_niggun':
       return sendSimpleListMenu(userId, 'menu_niggun', '🎵 זמן ניגונים - בחרו נושא:', [
-        ['niggun_holidays', 'ניגוני חגים 📅', 'ניגונים של חגים ודפגרא'],
-        ['niggun_moshiach', 'ניגוני משיח 🚀', 'ניגוני גאולה ומשיח'],
-        ['niggun_simcha', 'ניגוני שמחה 🎉', 'שמחה וריקוד'],
-        ['niggun_dveikus', 'ניגוני דבקות 💓', 'התעוררות ורגש'],
-        ['niggun_chabad', 'ניגוני חב״ד 🎼', 'ניגונים קלאסיים'],
+        ['niggun_holidays', 'ניגוני חגים 📅',        'ניגונים של חגים ודפגרא'],
+        ['niggun_moshiach', 'ניגוני משיח 🚀',        'ניגוני גאולה ומשיח'],
+        ['niggun_simcha',   'ניגוני שמחה 🎉',        'שמחה וריקוד'],
+        ['niggun_dveikus',  'ניגוני דבקות 💓',       'התעוררות ורגש'],
+        ['niggun_chabad',   'ניגוני חב״ד 🎼',        'ניגונים קלאסיים'],
       ]);
 
     case 'main_holidays':
       await db.setUserState(userId, { lastMenu: 'holidays_root' });
       return wa.sendButtonsAndLog(userId, 'חגים וימי דפגרא 📅 - בחרו אפשרות:', [
         { id: 'holidays_upcoming', title: 'החגים הקרובים 🗓️' },
-        { id: 'holidays_all', title: 'כל החגים 📜' },
-        { id: 'nav_home', title: 'תפריט ראשי 🏠' },
+        { id: 'holidays_all',      title: 'כל החגים 📜' },
+        { id: 'nav_home',          title: 'תפריט ראשי 🏠' },
       ], { action: 'holidays_root' });
 
     case 'main_topics':
       return sendSimpleListMenu(userId, 'menu_topics', '✨ נושאים נוספים - בחרו נושא:', [
-        ['topic_tzivos', 'צבאות השם 🪖', ''],
-        ['topic_hiskashrus', 'התקשרות לרבי 👑', ''],
-        ['topic_middos', 'מידות טובות ❤️', ''],
-        ['topic_pride', 'גאווה יהודית ✡️', ''],
-        ['topic_torah', 'תורה ומצוות 📘', ''],
-        ['topic_girls', 'בנות ישראל 👧', ''],
-        ['topic_12psukim', 'י״ב הפסוקים 📜', ''],
-        ['topic_weekly', 'התוכנית השבועית 🗓️', ''],
-        ['topic_kids_action', 'ילדים בפעולה 🤸', ''],
+        ['topic_tzivos',      'צבאות השם 🪖',           ''],
+        ['topic_hiskashrus',  'התקשרות לרבי 👑',        ''],
+        ['topic_middos',      'מידות טובות ❤️',         ''],
+        ['topic_pride',       'גאווה יהודית ✡️',        ''],
+        ['topic_torah',       'תורה ומצוות 📘',         ''],
+        ['topic_girls',       'בנות ישראל 👧',           ''],
+        ['topic_12psukim',    'י״ב הפסוקים 📜',         ''],
+        ['topic_weekly',      'התוכנית השבועית 🗓️',     ''],
+        ['topic_kids_action', 'ילדים בפעולה 🤸',        ''],
       ]);
 
     case 'main_general':
@@ -155,15 +156,15 @@ async function routeSelection(userId, id, title) {
     case 'story_chassidim': return sendVideoListByKey(userId, 'story_chassidim', '🕯️ סיפורי חסידים', 'story_root');
     case 'story_nesiim':
       return sendSimpleListMenu(userId, 'menu_nesiim', '👑 רבותינו נשיאינו - בחרו רבי:', [
-        ['rebbe:הבעש״ט', 'הבעש״ט ✨', ''],
-        ['rebbe:המגיד', 'המגיד ✨', ''],
-        ['rebbe:אדמו״ר הזקן', 'אדמו״ר הזקן ✨', ''],
-        ['rebbe:אדמו״ר האמצעי', 'אדמו״ר האמצעי ✨', ''],
-        ['rebbe:הצמח צדק', 'הצמח צדק ✨', ''],
-        ['rebbe:הרבי מהר״ש', 'הרבי מהר״ש ✨', ''],
-        ['rebbe:הרבי הרש״ב', 'הרבי הרש״ב ✨', ''],
-        ['rebbe:הרבי הריי״צ', 'הרבי הריי״צ ✨', ''],
-        ['rebbe:הרבי מלך המשיח', 'הרבי מלך המשיח ✨', ''],
+        ['rebbe:הבעש״ט',          'הבעש״ט ✨',          ''],
+        ['rebbe:המגיד',           'המגיד ✨',            ''],
+        ['rebbe:אדמו״ר הזקן',    'אדמו״ר הזקן ✨',     ''],
+        ['rebbe:אדמו״ר האמצעי',  'אדמו״ר האמצעי ✨',   ''],
+        ['rebbe:הצמח צדק',        'הצמח צדק ✨',         ''],
+        ['rebbe:הרבי מהר״ש',     'הרבי מהר״ש ✨',      ''],
+        ['rebbe:הרבי הרש״ב',     'הרבי הרש״ב ✨',      ''],
+        ['rebbe:הרבי הריי״צ',    'הרבי הריי״צ ✨',     ''],
+        ['rebbe:הרבי מלך המשיח', 'הרבי מלך המשיח ✨',  ''],
       ]);
 
     // Moshiach
@@ -217,25 +218,26 @@ async function routeSelection(userId, id, title) {
     case 'game_referral':            return game.showShareMenu(userId);
     case 'share_groups':             return game.sendShareForGroups(userId);
     case 'share_status':             return game.sendShareForStatus(userId);
-    case 'game_add_child':           return game.startChildRegistration(userId);  // ← תוקן
+    case 'game_add_child':           return game.startChildRegistration(userId);
     case 'game_settings':            return game.sendGameSettings(userId);
     case 'game_set_reminders':
     case 'game_change_reminder':     return game.startReminderTimeSetup(userId);
     case 'game_edit_child':          return game.showEditChildMenu(userId);
     case 'game_edit_name':           return game.startEditChildName(userId);
     case 'game_edit_birthday':       return game.startEditChildBirthday(userId);
+    case 'game_explain':             return game.sendGameExplanation(userId);
     case 'game_turn_off_reminders':
       await db.deactivateReminders(normalizePhone(userId));
       return wa.sendTextAndLog(userId, 'הבנתי! עצרתי את התזכורות היומיות. תוכלו להפעיל אותן מחדש דרך הגדרות המשחק 🤫', { action: 'opt_out_reminders' });
-    case 'game_turn_on_reminders':   // ← חסר בגרסה הקודמת
+    case 'game_turn_on_reminders':
       await db.activateReminders(normalizePhone(userId));
       return wa.sendTextAndLog(userId, '✅ התזכורות הופעלו מחדש!', { action: 'game_reminders_on' });
 
     default: {
-      if (sid.startsWith('holiday:'))        return sendHolidayVideos(userId, sid.substring('holiday:'.length));
-      if (sid.startsWith('rebbe:'))          return sendVideosByRebbe(userId, sid.substring('rebbe:'.length));
-      if (sid.startsWith('select_child:'))   return game.showChildGameMenu(userId, sid.substring('select_child:'.length));
-      if (sid.startsWith('do_mission:'))     return game.showActionMission(userId, sid.substring('do_mission:'.length));
+      if (sid.startsWith('holiday:'))         return sendHolidayVideos(userId, sid.substring('holiday:'.length));
+      if (sid.startsWith('rebbe:'))           return sendVideosByRebbe(userId, sid.substring('rebbe:'.length));
+      if (sid.startsWith('select_child:'))    return game.showChildGameMenu(userId, sid.substring('select_child:'.length));
+      if (sid.startsWith('do_mission:'))      return game.showActionMission(userId, sid.substring('do_mission:'.length));
       if (sid.startsWith('confirm_mission:')) return game.executeActionMission(userId, sid.substring('confirm_mission:'.length));
       if (sid.startsWith('triv_lvl:')) {
         const parts = sid.split(':');
@@ -272,7 +274,7 @@ async function handleWelcomeBackLastMenu(userId) {
   const menuMap = {
     'holidays_root': 'main_holidays', 'story_root': 'main_story',
     'menu_moshiach': 'main_moshiach', 'menu_niggun': 'main_niggun',
-    'menu_topics': 'main_topics', 'menu_nesiim': 'story_nesiim',
+    'menu_topics': 'main_topics',     'menu_nesiim': 'story_nesiim',
   };
   const routeId = menuMap[last];
   if (routeId) return routeSelection(userId, routeId, '');
@@ -293,18 +295,18 @@ async function handleWelcomeBackSearch(userId) {
 
 async function handleFreeText(userId, profileName, messageText) {
 
-  // 1. Menu guidance (מיידי)
+  // 1. Menu guidance
   const guided = await detectMenuGuidance(messageText);
   if (guided) {
     await wa.sendTextAndLog(userId, guided.text, { action: 'free_text_guided_to_menu', route: guided.routeId, query: messageText });
     return routeSelection(userId, guided.routeId, '');
   }
 
-  // 2. FAQ pattern matching (מיידי, ללא AI)
+  // 2. FAQ pattern matching
   const faqHandled = await handleSmartFaq(userId, messageText);
   if (faqHandled) return;
 
-  // 3. Knowledge base search (Google Sheets)
+  // 3. Knowledge base
   const knowledgeAnswer = await searchKnowledge(messageText);
   if (knowledgeAnswer) {
     await wa.sendTextAndLog(userId, knowledgeAnswer, { action: 'free_text_knowledge', query: messageText });
@@ -312,7 +314,7 @@ async function handleFreeText(userId, profileName, messageText) {
     return;
   }
 
-  // 4. OpenAI (וידאו + תשובה כללית)
+  // 4. OpenAI
   const aiAnswer = await tryOpenAIAnswer(messageText, userId);
   if (aiAnswer) {
     if (aiAnswer.mode === 'video' && aiAnswer.video) {
@@ -328,7 +330,7 @@ async function handleFreeText(userId, profileName, messageText) {
     }
   }
 
-  // 5. Local smart answer (ללא AI)
+  // 5. Local smart answer
   const local = await localSmartAnswer(messageText);
   if (local && local.kind === 'single_video' && local.video) {
     const localText = formatSingleVideoAnswer(local.video, '');
