@@ -1,7 +1,7 @@
 // src/modules/contactParser.js
 const fs   = require('fs');
 const path = require('path');
-const { getSheets } = require('./sheets'); // your existing sheets module
+const sheets = require('../db/sheets');
 
 /**
  * Normalize a raw phone string to digits-only with country code.
