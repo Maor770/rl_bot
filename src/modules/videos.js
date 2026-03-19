@@ -144,13 +144,18 @@ async function sendCurrentVideoPage(userId, offset, state, prefetchedItems = nul
 
   const key = String(state.currentListKey || '');
   if (key.startsWith('story_') || (key.startsWith('rebbe:') && !key.startsWith('niggun_rebbe:'))) {
-    lines.push('🎨 הידעת? כמעט לכל תוכניות הסיפורים שלנו יש גם דפי צביעה להורדה!');
-    lines.push('🖍️ אפשר לחפש באתר במדור "דפי צביעה".');
+    lines.push('🎨 *הידעת?*');
+    lines.push('לכמעט כל תוכניות הסיפורים יש גם דפי צביעה להורדה!');
+    lines.push('🖍️ מצאו אותם באתר במדור "דפי צביעה"');
+    lines.push('*rebbek.org*');
     lines.push('');
   }
 
-  lines.push('✨ רשימה זו נוצרה באמצעות הבוט החדש של "רבי לילדים"');
-  lines.push(`📲 לחיפוש מהיר ונוח בוואטסאפ:\nhttps://wa.me/${config.BOT_PUBLIC_WHATSAPP_NUMBER}?text=שלום`);
+  lines.push('✨ רשימה זו נוצרה באמצעות הבוט של *רבי לילדים*');
+  lines.push('📲 הבוט שמשדרג לילדים את הזמן הפנוי בבית');
+  lines.push(`https://wa.me/${config.BOT_PUBLIC_WHATSAPP_NUMBER}?text=שלום+הגעתי+דרך+${userId}`);
+  lines.push('');
+  lines.push('נהנתם? העבירו את ההודעה המוכנה לעוד הורים וזכו בפרסים! 🎁');
 
   await wa.sendTextAndLog(userId, lines.join('\n'), { action: 'video_results', list_key: key, offset: safeOffset, total: items.length });
   await db.setUserState(userId, { currentOffset: safeOffset });
@@ -160,9 +165,9 @@ async function sendCurrentVideoPage(userId, offset, state, prefetchedItems = nul
 async function sendNavigationButtons(userId, hasMore) {
   const buttons = [];
   if (hasMore) buttons.push({ id: 'nav_more', title: '➕ עוד' });
-  buttons.push({ id: 'nav_back', title: '↩️ חזרה' });
-  buttons.push({ id: 'nav_home', title: '🏠 תפריט ראשי' });
-  await wa.sendButtonsAndLog(userId, '‏', buttons.slice(0, 3), { action: 'navigation_buttons', has_more: hasMore });
+  buttons.push({ id: 'nav_home',  title: '🏠 תפריט ראשי' });
+  buttons.push({ id: 'nav_share', title: '📲 שתף להורים' });
+  await wa.sendButtonsAndLog(userId, 'ועוד אפשרויות:', buttons.slice(0, 3), { action: 'navigation_buttons', has_more: hasMore });
 }
 
 // ── BY NUMBER ─────────────────────────────────────────────────────────────────

@@ -12,7 +12,10 @@ function getAuth() {
   const credentials = JSON.parse(raw);
   _auth = new google.auth.GoogleAuth({
     credentials,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    scopes: [
+      'https://www.googleapis.com/auth/spreadsheets.readonly',
+      'https://www.googleapis.com/auth/spreadsheets',
+    ],
   });
   return _auth;
 }
@@ -25,6 +28,17 @@ async function getSheetValues(sheetName) {
     range: sheetName,
   });
   return res.data.values || [];
+}
+
+async function appendRow(sheetName, values) {
+  const auth = getAuth();
+  const sheets = google.sheets({ version: 'v4', auth });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: config.SPREADSHEET_ID,
+    range: sheetName,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [values] },
+  });
 }
 
 function rowsToObjects(values) {
@@ -141,5 +155,5 @@ module.exports = {
   getVideoIndex, getKnowledgeRows, getHolidaysMaster,
   getTriviaRows, getMissionsBank, getCouponsBank,
   getSettings, getSetting, getAutoMessages,
-  clearAllCaches,
+  appendRow, clearAllCaches,
 };

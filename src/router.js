@@ -20,40 +20,46 @@ async function sendWelcomeAndMainMenu(userId) {
   });
 
   const welcomeText =
-    '🎉 ברוכים הבאים לבוט החדש של *"רבי לילדים"*!\n\n' +
-    '🎮 *חדש! המשחק היומי של רבי לילדים!*\n' +
+    'מחפשים תוכן חסידי לילדים? 🎬\n\n' +
+    '🎮 *המשחק היומי של רבי לילדים!*\n' +
     'משימות יומיות, משחק טריוויה ופרסים אמיתיים!\n\n' +
     '🎬 *ספריית הסרטונים מחכה לך!*\n' +
-    'בחרו נושא מהכפתורים, או פשוט כתבו מה אתם מחפשים.\n\n' +
-    "💡 לדוגמה:\nסיפור מר' לויק לפסח";
+    'חפשו וצפו בתוכניות וידאו חינוכיות של רבי לילדים\n\n' +
+    'הבוט שמשדרג לילדים את הזמן הפנוי בבית ✨';
 
   await wa.sendButtonsAndLog(userId, welcomeText, [
-    { id: 'main_general',   title: '👈 המשחק היומי 🎮' },
-    { id: 'main_moshiach',  title: 'לחיות משיח 🚀' },
-    { id: 'main_story',     title: 'סיפורים ודפי צביעה 🎨' },
-  ], { action: 'main_menu_buttons_1' });
+    { id: 'main_general',  title: '🎮 המשחק היומי' },
+    { id: 'main_library',  title: '🎬 ספריית הסרטונים' },
+    { id: 'game_referral', title: '🎁 שתף וזכה' },
+  ], { action: 'main_menu' });
+}
 
-  await wa.sendButtonsAndLog(userId, 'ועוד:', [
-    { id: 'main_niggun',   title: 'זמן ניגונים 🎵' },
-    { id: 'main_holidays', title: 'חגים וימי דפגרא 📅' },
-    { id: 'game_referral', title: 'שתף וזכה 📲' },
-  ], { action: 'main_menu_buttons_2' });
+async function sendLibraryMenu(userId) {
+  await db.setUserState(userId, { lastMenu: 'library_root' });
+  return wa.sendListAndLog(userId,
+    '🎬 *ספריית הסרטונים של רבי לילדים!*\nבחרו נושא או פשוט כתבו מה אתם מחפשים 👇\n\n🔍 למשל: "סיפור לפסח" או "ניגון של הרבי"',
+    'בחרו',
+    'קטגוריות',
+    [
+      { id: 'main_story',        title: '📖 סיפורים ודפי צביעה', description: '' },
+      { id: 'main_moshiach',     title: '✡️ לחיות משיח',         description: '' },
+      { id: 'main_holidays',     title: '🗓 חגים וימי דפגרא',    description: '' },
+      { id: 'main_niggun',       title: '🎵 זמן ניגונים',         description: '' },
+      { id: 'main_free_search',  title: '🔍 חיפוש חופשי',        description: 'כתבו מה אתם מחפשים' },
+      { id: 'nav_home',          title: '🏠 תפריט ראשי',          description: '' },
+    ],
+    { action: 'library_menu' }
+  );
 }
 
 async function sendMainMenuButtonsOnly(userId) {
   await db.setUserState(userId, { lastMenu: '', currentListKey: '', currentListTitle: '', currentOffset: 0 });
 
-  await wa.sendButtonsAndLog(userId, 'בחרו נושא מהכפתורים, או פשוט כתבו מה אתם מחפשים.', [
-    { id: 'main_general',  title: '👈 המשחק היומי 🎮' },
-    { id: 'main_moshiach', title: 'לחיות משיח 🚀' },
-    { id: 'main_story',    title: 'סיפורים ודפי צביעה 🎨' },
-  ], { action: 'main_menu_buttons_1_fastonly' });
-
-  await wa.sendButtonsAndLog(userId, 'ועוד:', [
-    { id: 'main_niggun',   title: 'זמן ניגונים 🎵' },
-    { id: 'main_holidays', title: 'חגים וימי דפגרא 📅' },
-    { id: 'game_referral', title: 'שתף וזכה 📲' },
-  ], { action: 'main_menu_buttons_2_fastonly' });
+  await wa.sendButtonsAndLog(userId, 'בחרו מהכפתורים, או כתבו מה אתם מחפשים:', [
+    { id: 'main_general',  title: '🎮 המשחק היומי' },
+    { id: 'main_library',  title: '🎬 ספריית הסרטונים' },
+    { id: 'game_referral', title: '🎁 שתף וזכה' },
+  ], { action: 'main_menu_buttons_only' });
 }
 
 // ── SIMPLE LIST MENU ──────────────────────────────────────────────────────────
@@ -152,6 +158,16 @@ async function routeSelection(userId, id, title) {
     case 'main_general':
       return game.startDailyGameFlow(userId);
 
+    case 'main_library':
+      return sendLibraryMenu(userId);
+
+    case 'main_free_search':
+      await db.setUserState(userId, { expectedInput: 'FREE_SEARCH_PROMPT' });
+      return wa.sendTextAndLog(userId,
+        '🔍 *חיפוש חופשי*\nכתבו מה אתם מחפשים ואני אמצא עבורכם!\n\nלמשל: "סיפור לפסח", "ניגון של הרבי", "תוכנית על מידות טובות"',
+        { action: 'free_search_prompt' }
+      );
+
     // Story
     case 'story_kedumim':   return sendVideoListByKey(userId, 'story_kedumim', '📜 ממקורות קדומים', 'story_root');
     case 'story_chassidim': return sendVideoListByKey(userId, 'story_chassidim', '🕯️ סיפורי חסידים', 'story_root');
@@ -219,6 +235,13 @@ async function routeSelection(userId, id, title) {
     case 'wb_search':    return handleWelcomeBackSearch(userId);
 
     // Game
+    case 'game_feedback':
+      await db.setUserState(userId, { expectedInput: 'AWAITING_FEEDBACK' });
+      return wa.sendTextAndLog(userId,
+        '💬 *נשמח לשמוע!*\nכתבו לנו את המחשבות שלכם — מה אהבתם, מה אפשר לשפר, כל דבר יעזור לנו 😊',
+        { action: 'feedback_prompt' }
+      );
+
     case 'daily_game_notify':
       await db.setUserDailyGameNotify(normalizePhone(userId), true);
       return wa.sendTextAndLog(userId, "✅ בשמחה!\nנעדכן אתכם בעזרת ה' ברגע שהמשחק היומי יהיה מוכן.", { action: 'daily_game_notify_opt_in' });
@@ -235,6 +258,8 @@ async function routeSelection(userId, id, title) {
     case 'game_change_reminder':     return game.startReminderTimeSetup(userId);
     case 'game_edit_child':          return game.showEditChildMenu(userId);
     case 'game_edit_name':           return game.startEditChildName(userId);
+    case 'game_switch_child':        return game.switchChildMenu(userId);
+    case 'nav_share':                 return game.showShareMenu(userId);
     case 'game_edit_birthday':       return game.startEditChildBirthday(userId);
     case 'game_explain':             return game.sendGameExplanation(userId);
     case 'game_turn_off_reminders':
@@ -281,13 +306,14 @@ async function routeSelection(userId, id, title) {
 async function handleBackNavigation(userId) {
   const state = await db.getUserState(userId);
   const last = state.lastMenu || '';
-  if (!last || last === 'home') return sendWelcomeAndMainMenu(userId);
-  if (last === 'holidays_root')      return routeSelection(userId, 'main_holidays', '');
-  if (last === 'story_root')         return routeSelection(userId, 'main_story', '');
-  if (last === 'menu_moshiach')      return routeSelection(userId, 'main_moshiach', '');
-  if (last === 'menu_niggun')        return routeSelection(userId, 'main_niggun', '');
+  if (!last || last === 'home')    return sendWelcomeAndMainMenu(userId);
+  if (last === 'library_root')     return sendLibraryMenu(userId);
+  if (last === 'holidays_root')    return routeSelection(userId, 'main_holidays', '');
+  if (last === 'story_root')       return routeSelection(userId, 'main_story', '');
+  if (last === 'menu_moshiach')    return routeSelection(userId, 'main_moshiach', '');
+  if (last === 'menu_niggun')      return routeSelection(userId, 'main_niggun', '');
   if (last === 'menu_niggun_nesiim') return routeSelection(userId, 'niggun_nesiim', '');
-  if (last === 'menu_topics')        return routeSelection(userId, 'main_topics', '');
+  if (last === 'menu_topics')      return routeSelection(userId, 'main_topics', '');
   return sendWelcomeAndMainMenu(userId);
 }
 
@@ -376,4 +402,4 @@ async function handleFreeText(userId, profileName, messageText) {
   await insertQuestion({ phone: userId, name: profileName, message: messageText, questionType: 'free_text', botReply: noMatchText, matchedType: 'none', matchedIds: '' });
 }
 
-module.exports = { routeSelection, sendWelcomeAndMainMenu, sendMainMenuButtonsOnly, handleFreeText };
+module.exports = { routeSelection, sendWelcomeAndMainMenu, sendMainMenuButtonsOnly, sendLibraryMenu, handleFreeText };

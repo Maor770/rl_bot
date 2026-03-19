@@ -157,6 +157,7 @@ function defaultState() {
     expectedInput: '',
     activeChildId: '',
     activeMissionId: '',
+    postGameSentAt: 0,
   };
 }
 

@@ -79,6 +79,19 @@ async function sendList(to, bodyText, buttonText, sectionTitle, rows) {
   await db.insertLog('outbound', phone, bodyText, 'list', { buttonText, sectionTitle, rowsCount: cleanRows.length });
 }
 
+async function sendImage(to, imageUrl, caption = '') {
+  const phone = normalizePhone(to);
+  await sendPayload({
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: phone,
+    type: 'image',
+    image: { link: imageUrl, caption: String(caption || '') },
+  });
+  await db.insertLog('outbound', phone, caption || imageUrl, 'image', { url: imageUrl });
+}
+
+
 async function sendTextAndLog(to, bodyText, meta = {}) {
   await sendText(to, bodyText);
   await db.insertLog('bot', normalizePhone(to), bodyText, 'text', meta);
@@ -94,4 +107,4 @@ async function sendListAndLog(to, bodyText, buttonText, sectionTitle, rows, meta
   await db.insertLog('bot', normalizePhone(to), bodyText, 'list', { buttonText, sectionTitle, rowsCount: (rows || []).length, ...meta });
 }
 
-module.exports = { sendText, sendButtons, sendList, sendTextAndLog, sendButtonsAndLog, sendListAndLog };
+module.exports = { sendText, sendButtons, sendList, sendImage, sendTextAndLog, sendButtonsAndLog, sendListAndLog };

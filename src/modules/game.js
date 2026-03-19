@@ -86,7 +86,7 @@ async function showChildGameMenu(userId, childId) {
   );
 
   // הודעה שנייה — דירוג + הגדרות + הסבר
-  await wa.sendButtonsAndLog(userId, '‏', [
+  await wa.sendButtonsAndLog(userId, 'עוד אפשרויות:', [
     { id: 'game_leaderboard', title: 'הדירוג שלי 🏆' },
     { id: 'game_settings',    title: 'הגדרות ⚙️' },
     { id: 'game_explain',     title: 'איך המשחק עובד? ℹ️' },
@@ -97,32 +97,34 @@ async function showChildGameMenu(userId, childId) {
 
 async function sendGameExplanation(userId) {
   await wa.sendTextAndLog(userId,
-    '🎮 *איך עובד המשחק היומי של רבי לילדים?*\n\n' +
-    '"רבי לילדים" רוצה לעזור לחסידים הקטנים למלא את הזמן הפנוי שלהם בחוויה חסידית אמיתית — ולזכות בפרסים על הדרך! 🏆\n\n' +
-    '*💎 יהלומים*\n' +
-    'בכל פעם שתשלימו משימה או תענו נכון על שאלת טריוויה — תרוויחו יהלומים לארנק שלכם.\n\n' +
-    '*🎯 משימות יומיות*\n' +
-    'כל יום מחכות לכם משימות קבועות ובסיסיות — השלימו אותן וקבלו יהלומים!\n\n' +
-    '*🧠 טריוויה יומית*\n' +
-    'כל יום יש 9 שאלות מתוך תוכנית אחת של רבי לילדים, בשלוש רמות קושי — קל, בינוני וקשה. שימו לב — יש רק הזדמנות אחת לכל שאלה!\n\n' +
-    '*🎟️ שתי הגרלות — כל שבוע!*\n' +
-    'כל 500 יהלומים = כרטיס אחד להגרלה. ככל שיש לכם יותר — יותר סיכויים!\n\n' +
-    '🔹 *הגרלת יהלומים* — באמצע השבוע\n' +
-    '🔹 *הגרלת שיתופים* — במוצאי שבת\n\n' +
-    'שתי הגרלות נפרדות לחלוטין — אפשר לזכות בשתיהן! 🎉\n\n' +
-    '*📲 שיתוף*\n' +
-    'כל מי שמצטרף דרך הקישור האישי שלכם — נותן לכם כרטיס נוסף להגרלת השיתופים!',
+    '🎮 *איך עובד המשחק של רבי לילדים?*\n\n' +
+    'פשוט מאוד — אוספים יהלומים וזוכים בפרסים! 💎\n\n' +
+    '*איך מרוויחים יהלומים?*\n' +
+    '🎯 השלמת משימה יומית — קבלת יהלומים!\n' +
+    '🧠 ענית נכון בטריוויה — קבלת יהלומים!\n\n' +
+    '*הטריוויה:*\n' +
+    'כל יום 9 שאלות מתוכנית אחת של רבי לילדים.\n' +
+    '3 רמות קושי — קל, בינוני וקשה.\n\n' +
+    '*איך זוכים בפרסים?*\n' +
+    '🎟️ כל 100 יהלומים = כרטיס אחד להגרלה\n' +
+    'ככל שיש לך יותר יהלומים — יותר סיכויים לזכות!\n\n' +
+    '*שתי הגרלות בשבוע:*\n' +
+    '🎰 הגרלת יהלומים — אמצע השבוע\n' +
+    '🎰 הגרלת שיתופים — מוצאי שבת\n' +
+    'אפשר לזכות בשתיהן! 🎉\n\n' +
+    '*רוצה עוד כרטיסים?*\n' +
+    '📲 כל מי שמצטרף דרכך = כרטיס נוסף להגרלה!\n' +
+    'העבירו את ההודעה המוכנה לעוד משפחות ותגדילו את סיכויי הזכיה! 🎁',
     { action: 'game_explain' }
   );
 
   const state = await db.getUserState(userId);
   const childId = state.activeChildId;
-  if (childId) {
-    await wa.sendButtonsAndLog(userId, '‏', [
-      { id: `select_child:${childId}`, title: 'חזרה למשחק 🎲' },
-      { id: 'nav_home', title: 'תפריט ראשי 🏠' },
-    ], { action: 'game_explain_nav' });
-  }
+  await wa.sendButtonsAndLog(userId, 'מה תרצו לעשות?', [
+    { id: childId ? `select_child:${childId}` : 'main_general', title: '🎲 בואו נשחק!' },
+    { id: 'game_referral', title: '📲 אני רוצה לשתף!' },
+    { id: 'game_settings', title: '⚙️ הגדרות' },
+  ], { action: 'game_explain_nav' });
 }
 
 // ── ONBOARDING STATE MACHINE ──────────────────────────────────────────────────
@@ -527,17 +529,50 @@ function getShareLink(userId) {
 }
 
 async function sendShareForGroups(userId) {
-  await wa.sendTextAndLog(userId, buildShareText(userId), { action: 'share_groups_link' });
+  const shareLink = getShareLink(userId);
+  // שלח תמונה
+  await wa.sendImage(userId, 'https://i.ibb.co/KPhq63T/Share.jpg', '');
+  // הודעת שיתוף
   await wa.sendTextAndLog(userId,
-    "שני קליקים ואנחנו שם 💪\n\nבוחרים את ההודעה למעלה👆 >> לוחצים *העבר* >> לבני משפחה, חברים וקבוצת הורים\n\nבזכותך *עוד ילדים* יקבלו תוכן חינוכי איכותי 👑",
+    'היי 👋\n' +
+    'אני חייב לשתף אתכם במשהו שאנחנו ממש נהנים ממנו בבית!\n\n' +
+    'הבוט של *רבי לילדים* —\n' +
+    'תוכן חסידי לילדים, ללא עלות, ישר בוואטסאפ 🎬\n\n' +
+    '🎮 משחק יומי עם משימות, טריוויה ופרסים אמיתיים!\n' +
+    '📚 סיפורים, חגים, ניגונים ועוד — הכל במקום אחד.\n\n' +
+    `שווה מאוד להכיר! 👇\n${shareLink}`,
+    { action: 'share_groups_message' }
+  );
+  // הוראות
+  await wa.sendTextAndLog(userId,
+    'שני קליקים ואנחנו שם 👆\n' +
+    'בוחרים את ההודעה למעלה\n' +
+    '>> לוחצים *העבר*\n' +
+    '>> בוחרים קבוצות הורים\n\n' +
+    'בזכותך *עוד ילדים* יקבלו תוכן חסידי איכותי 🙏',
     { action: 'share_groups_instructions' }
   );
 }
 
 async function sendShareForStatus(userId) {
-  await wa.sendTextAndLog(userId, buildShareText(userId), { action: 'share_status_link' });
+  const shareLink = getShareLink(userId);
+  // שלח תמונה
+  await wa.sendImage(userId, 'https://i.ibb.co/4nd56p8Z/Status.jpg', '');
+  // הודעת שיתוף
   await wa.sendTextAndLog(userId,
-    'שני קליקים ואנחנו שם 💪\n\nבוחרים את ההודעות למעלה👆 >> לוחצים *העבר* >> לסטטוס\n\nבזכותך *עוד ילדים* יקבלו תוכן חינוכי איכותי 👑',
+    'מה שעושים אצלנו בבית עם הילדים 🏠\n\n' +
+    '*רבי לילדים* —\n' +
+    'סרטונים חסידיים + משחק יומי + פרסים 🎬🎮\n\n' +
+    `ללא עלות, בוואטסאפ 👇\n${shareLink}`,
+    { action: 'share_status_message' }
+  );
+  // הוראות
+  await wa.sendTextAndLog(userId,
+    'שני קליקים ואנחנו שם 👆\n' +
+    'בוחרים את ההודעה למעלה\n' +
+    '>> לוחצים *העבר*\n' +
+    '>> מעלים לסטטוס\n\n' +
+    'בזכותך *עוד ילדים* יקבלו תוכן חסידי איכותי 🙏',
     { action: 'share_status_instructions' }
   );
 }
@@ -554,12 +589,14 @@ async function processReferral(newUserId, referrerPhone) {
 // ── SETTINGS ──────────────────────────────────────────────────────────────────
 
 async function sendGameSettings(userId) {
-  await wa.sendListAndLog(userId, '⚙️ *הגדרות המשחק היומי:*', 'בחר', 'הגדרות', [
-    { id: 'game_turn_off_reminders', title: 'כבה תזכורות 🔕',      description: '' },
-    { id: 'game_turn_on_reminders',  title: 'הפעל תזכורות 🔔',     description: '' },
-    { id: 'game_change_reminder',    title: 'שנה שעת תזכורת ⏰',   description: '' },
-    { id: 'game_edit_child',         title: 'ערוך פרופיל ילד ✏️',  description: 'שנה שם או תאריך לידה' },
-    { id: 'game_add_child',          title: 'הוסף ילד נוסף ➕',     description: '' },
+  await wa.sendListAndLog(userId, '⚙️ *הגדרות המשחק:*', 'בחר', 'הגדרות', [
+    { id: 'game_turn_off_reminders', title: 'כבה תזכורות 🔕',          description: '' },
+    { id: 'game_turn_on_reminders',  title: 'הפעל תזכורות 🔔',         description: '' },
+    { id: 'game_change_reminder',    title: 'שנה שעת תזכורת ⏰',       description: '' },
+    { id: 'game_edit_child',         title: 'ערוך פרופיל ילד ✏️',      description: 'שנה שם או תאריך לידה' },
+    { id: 'game_add_child',          title: 'הוסף ילד נוסף ➕',         description: '' },
+    { id: 'game_switch_child',       title: 'החלף משחק לילד אחר 🔄',   description: '' },
+    { id: 'nav_home',                title: 'תפריט ראשי 🏠',            description: '' },
   ], { action: 'game_settings' });
 }
 
@@ -597,12 +634,12 @@ async function executeRaffle(raffleType) {
   } else {
     const allChildren = await db.getAllChildrenSorted();
     const pool = [];
-    for (const c of allChildren) { const t = Math.floor(c.diamonds / 500); for (let i = 0; i < t; i++) pool.push(c); }
+    for (const c of allChildren) { const t = Math.floor(c.diamonds / 100); for (let i = 0; i < t; i++) pool.push(c); }
     if (!pool.length) return;
     const winner = pool[Math.floor(Math.random() * pool.length)];
     winnerPhone = winner.phone;
     winnerId = winner.childId;
-    winnerMsg = `🎉🎉🎉 מזל טוב ${winner.name}!\nזכית ב*הגרלת היהלומים*!\n🎁 הפרס: *${couponDesc}*\n🔑 הקוד שלך: *${couponCode}*\n\nתראו לאמא ואבא! 😊`;
+    winnerMsg = `🎉🎉🎉 מזל טוב ${winner.name}!\nזכית ב*הגרלת היהלומים*!\n🎁 הפרס: *${couponDesc}*\n🔑 הקוד שלך: *${couponCode}*\n\nכל 100 יהלומים = כרטיס אחד 🎟️\nתראו לאמא ואבא! 😊`;
     await db.resetDiamondsForRaffle();
   }
   await db.query('UPDATE raffles SET status=$1, winner_child_id=$2, coupon_code=$3 WHERE raffle_date=CURRENT_DATE AND raffle_type=$4',
@@ -616,7 +653,7 @@ async function sendFomoReminders(raffleType) {
   const notified = new Set();
   for (const c of allChildren) {
     if (!c.phone || notified.has(c.phone)) continue;
-    if (Math.floor(c.diamonds / 500) <= 0) continue;
+    if (Math.floor(c.diamonds / 100) <= 0) continue;
     notified.add(c.phone);
     try {
       const { sendText } = require('../whatsapp');
@@ -690,6 +727,10 @@ async function getAvailableTrivia(childId) {
   }));
 }
 
+async function switchChildMenu(userId) {
+  return startDailyGameFlow(userId);
+}
+
 module.exports = {
   startDailyGameFlow, startChildRegistration, showChildGameMenu, handleOnboardingFlow,
   showEditChildMenu, startEditChildName, startEditChildBirthday,
@@ -699,4 +740,5 @@ module.exports = {
   processReferral, sendGameSettings, startReminderTimeSetup,
   executeRaffle, sendFomoReminders, sendScheduledReminders,
   getTodayRaffleType, getNextRaffleDateText, getShareLink, sendGameExplanation,
+  switchChildMenu,
 };

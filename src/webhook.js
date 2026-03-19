@@ -100,6 +100,43 @@ async function handleIncomingMessage(message, contact) {
 
   // ── ONBOARDING STATE MACHINE ──────────────────────────────────────────────
   const freshState = await db.getUserState(from);
+
+  // פידבק — קבלת טקסט חופשי
+  if (freshState.expectedInput === 'AWAITING_FEEDBACK') {
+    await db.setUserState(from, { expectedInput: '' });
+    const feedbackText = normalized;
+    const sheets = require('./db/sheets');
+    const { nowString } = require('./utils');
+    // שמירה בשיטס
+    try {
+      await sheets.appendRow('Feedback', [nowString(), from, profileName, feedbackText]);
+    } catch (e) {
+      console.error('[Feedback] Sheets error:', e.message);
+    }
+    // שליחה לאדמין
+    try {
+      const adminPhone = normalizePhone(config.ADMIN_PHONE);
+      if (adminPhone) {
+        await wa.sendText(adminPhone,
+          `💬 *פידבק חדש מהבוט*\n👤 ${profileName || from}\n📱 ${from}\n\n${feedbackText}`
+        );
+      }
+    } catch (e) {
+      console.error('[Feedback] Admin notify error:', e.message);
+    }
+    await wa.sendTextAndLog(from,
+      '🙏 תודה רבה על הפידבק!\nזה עוזר לנו לשפר ולהמשיך לגדול 😊',
+      { action: 'feedback_received' }
+    );
+    return;
+  }
+
+  // חיפוש חופשי — קבלת שאילתא
+  if (freshState.expectedInput === 'FREE_SEARCH_PROMPT') {
+    await db.setUserState(from, { expectedInput: '' });
+    return handleFreeText(from, profileName, normalized);
+  }
+
   if (freshState.expectedInput) {
     return handleOnboardingFlow(from, normalized, freshState);
   }
