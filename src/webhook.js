@@ -7,6 +7,7 @@ const { sendVideoByNumber } = require('./modules/videos');
 const { detectNoise } = require('./modules/search');
 const { processReferral, handleOnboardingFlow } = require('./modules/game');
 const { insertLog } = require('./db/postgres');
+const { markLogRead, markLogClicked } = require('./db/campaignMigrations');
 const config = require('./config');
 
 const SESSION_TIMEOUT_MS = 3 * 60 * 60 * 1000; // 3 hours
@@ -31,6 +32,18 @@ function getButtonId(message) {
   return '';
 }
 
+// ── CAMPAIGN STATUS UPDATE (read receipts) ────────────────────────────────────
+async function handleStatusUpdate(status) {
+  if (!status || !status.id) return;
+  try {
+    if (status.status === 'read') {
+      await markLogRead(status.id);
+    }
+  } catch (e) {
+    // Silent — don't break main webhook flow
+  }
+}
+
 async function handleIncomingMessage(message, contact) {
   const from = normalizePhone(message.from || '');
   if (!from) return;
@@ -46,6 +59,13 @@ async function handleIncomingMessage(message, contact) {
   if (btnId) {
     await db.upsertUser(from, profileName);
     await db.setUserState(from, { lastInteractionMs: Date.now() });
+
+    // Track campaign button click (context.id = message_id of the template we sent)
+    try {
+      const contextMsgId = message.context?.id || '';
+      if (contextMsgId) await markLogClicked(contextMsgId, btnTitle);
+    } catch (e) {}
+
     return routeSelection(from, btnId, btnTitle);
   }
 
@@ -61,7 +81,7 @@ async function handleIncomingMessage(message, contact) {
       deployedAt = d.toLocaleString('he-IL', { timeZone: config.TZ });
     } catch (e) {}
     return wa.sendText(from,
-      `⚙️ *רבי לילדים Bot*\n📦 גרסה: 13.1.0\n📅 עודכן: ${deployedAt}\n✅ סטטוס: פעיל`
+      `⚙️ *רבי לילדים Bot*\n📦 גרסה: 13.2.0\n📅 עודכן: ${deployedAt}\n✅ סטטוס: פעיל`
     );
   }
 
@@ -107,13 +127,11 @@ async function handleIncomingMessage(message, contact) {
     const feedbackText = normalized;
     const sheets = require('./db/sheets');
     const { nowString } = require('./utils');
-    // שמירה בשיטס
     try {
       await sheets.appendRow('Feedback', [nowString(), from, profileName, feedbackText]);
     } catch (e) {
       console.error('[Feedback] Sheets error:', e.message);
     }
-    // שליחה לאדמין
     try {
       const adminPhone = normalizePhone(config.ADMIN_PHONE);
       if (adminPhone) {
@@ -190,6 +208,12 @@ async function handleWebhookPayload(payload, phoneNumberId) {
       if (phoneNumberId && incomingId && incomingId !== phoneNumberId) {
         console.log(`[Webhook] Skipping — phone_id ${incomingId} != ours ${phoneNumberId}`);
         continue;
+      }
+
+      // ── STATUS UPDATES (read receipts) ────────────────────────────────────
+      const statuses = value.statuses || [];
+      for (const s of statuses) {
+        try { await handleStatusUpdate(s); } catch (e) {}
       }
 
       const messages = value.messages || [];

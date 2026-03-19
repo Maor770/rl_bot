@@ -10,11 +10,12 @@ const config = require('./config');
 const { sendScheduledReminders, getTodayRaffleType, sendFomoReminders, executeRaffle } = require('./modules/game');
 const { sendManualReplies } = require('./modules/admin');
 const { runSync } = require('./modules/sync');
+const { broadcastSchedulerTick } = require('./modules/broadcast');
 const db = require('./db/postgres');
 const wa = require('./whatsapp');
 
 const POST_GAME_TIMEOUT_MS = 5 * 60 * 1000; // 5 דקות
-const postGameSent = new Set(); // מניעת כפילויות באותה session
+const postGameSent = new Set();
 
 async function sendPostGameMessages() {
   const now = Date.now();
@@ -23,8 +24,10 @@ async function sendPostGameMessages() {
       `SELECT phone, state_json FROM users
        WHERE state_json->>'hasSeenWelcome' = 'true'
          AND state_json->>'lastInteractionMs' IS NOT NULL
-         AND (state_json->>'postGameSentAt') IS NULL
-         OR (state_json->>'postGameSentAt')::bigint < (state_json->>'lastInteractionMs')::bigint`
+         AND (
+           (state_json->>'postGameSentAt') IS NULL
+           OR (state_json->>'postGameSentAt')::bigint < (state_json->>'lastInteractionMs')::bigint
+         )`
     );
     for (const row of result.rows) {
       const phone = row.phone;
@@ -34,11 +37,11 @@ async function sendPostGameMessages() {
       const lastMs = Number(state.lastInteractionMs || 0);
       if (!lastMs) continue;
       const elapsed = now - lastMs;
-      if (elapsed < POST_GAME_TIMEOUT_MS || elapsed > POST_GAME_TIMEOUT_MS * 12) continue; // 5 דקות עד שעה
+      if (elapsed < POST_GAME_TIMEOUT_MS || elapsed > POST_GAME_TIMEOUT_MS * 12) continue;
       const postGameSentAt = Number(state.postGameSentAt || 0);
-      if (postGameSentAt >= lastMs) continue; // כבר נשלח אחרי האינטראקציה האחרונה
+      if (postGameSentAt >= lastMs) continue;
       const expectedInput = String(state.expectedInput || '');
-      if (expectedInput) continue; // משתמש באמצע תהליך
+      if (expectedInput) continue;
       postGameSent.add(phone);
       try {
         await wa.sendButtonsAndLog(phone,
@@ -60,7 +63,7 @@ async function sendPostGameMessages() {
       } catch (e) {
         console.error(`[PostGame] Error for ${phone}:`, e.message);
       }
-      setTimeout(() => postGameSent.delete(phone), 60 * 60 * 1000); // נקה אחרי שעה
+      setTimeout(() => postGameSent.delete(phone), 60 * 60 * 1000);
     }
   } catch (e) {
     console.error('[PostGame] Query error:', e.message);
@@ -74,6 +77,12 @@ function startScheduler() {
   cron.schedule('* * * * *', async () => {
     try { await sendPostGameMessages(); }
     catch (e) { console.error('[Scheduler] postGame error:', e.message); }
+  }, { timezone: config.TZ });
+
+  // ── CAMPAIGN BROADCAST — כל דקה ──────────────────────────────────────────
+  cron.schedule('* * * * *', async () => {
+    try { await broadcastSchedulerTick(); }
+    catch (e) { console.error('[Scheduler] broadcastTick error:', e.message); }
   }, { timezone: config.TZ });
 
   // ── HOURLY GAME ENGINE ────────────────────────────────────────────────────

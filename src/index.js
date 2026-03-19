@@ -1,8 +1,10 @@
 'use strict';
 require('dotenv').config();
 const express = require('express');
+const path    = require('path');
 const config  = require('./config');
 const { initDB } = require('./db/postgres');
+const { runCampaignMigrations } = require('./db/campaignMigrations');
 const { handleWebhookPayload } = require('./webhook');
 const { startScheduler } = require('./scheduler');
 const { notifyAdmin } = require('./modules/admin');
@@ -10,9 +12,18 @@ const { notifyAdmin } = require('./modules/admin');
 const app = express();
 app.use(express.json());
 
+// ── STATIC ADMIN UI ───────────────────────────────────────────────────────────
+app.use('/admin/ui', express.static(path.join(__dirname, '../public/admin')));
+
+// ── ADMIN API ─────────────────────────────────────────────────────────────────
+const campaignRoutes = require('./admin/campaignRoutes');
+const statsRoutes    = require('./admin/statsRoutes');
+app.use('/admin', campaignRoutes);
+app.use('/admin/stats', statsRoutes);
+
 // ── HEALTH CHECK ──────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', version: '13.0.0', bot: 'רבי לילדים' });
+  res.json({ status: 'ok', version: '13.2.0', bot: 'רבי לילדים' });
 });
 
 // ── WEBHOOK VERIFY ────────────────────────────────────────────────────────────
@@ -31,8 +42,7 @@ app.get('/webhook', (req, res) => {
 
 // ── WEBHOOK RECEIVE ───────────────────────────────────────────────────────────
 app.post('/webhook', async (req, res) => {
-  // Always respond immediately so Meta doesn't retry
-  res.sendStatus(200);
+  res.sendStatus(200); // Always respond immediately
 
   const phoneNumberId = config.WHATSAPP_PHONE_NUMBER_ID;
 
@@ -55,10 +65,12 @@ app.post('/admin/clear-cache', (req, res) => {
 async function start() {
   try {
     await initDB();
+    await runCampaignMigrations();
     startScheduler();
 
     app.listen(config.PORT, () => {
-      console.log(`[Server] רבי לילדים Bot v13 running on port ${config.PORT}`);
+      console.log(`[Server] רבי לילדים Bot v13.2 running on port ${config.PORT}`);
+      console.log(`[Server] Admin UI: http://localhost:${config.PORT}/admin/ui`);
       console.log(`[Server] Timezone: ${config.TZ}`);
     });
   } catch (err) {
