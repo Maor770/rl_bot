@@ -145,25 +145,30 @@ function parseCSVLine(line) {
  * (same format as our cleaned CSV output)
  */
 async function loadFromSheet(sheetName) {
-  const sheets = getSheets();
-  const rows   = await sheets.getRows(sheetName); // returns array of row objects
+  const values = await sheets.getSheetValues(sheetName);
   const results  = [];
   const seenPhones = new Set();
 
-  for (const row of rows) {
-    const phone = normalizePhone(row.phone || row['Phone 1 - Value'] || '');
+  if (!values || values.length < 2) return [];
+  const headers = values[0].map(h => String(h || ''));
+  const phoneIdx = headers.indexOf('phone');
+  const firstIdx = headers.indexOf('first_name');
+  const lastIdx  = headers.indexOf('last_name');
+  const dispIdx  = headers.indexOf('display_name');
+
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const phone = normalizePhone(row[phoneIdx] || '');
     if (!phone) continue;
     if (seenPhones.has(phone)) continue;
     seenPhones.add(phone);
-
     results.push({
       phone,
-      first_name:   String(row.first_name  || '').trim(),
-      last_name:    String(row.last_name   || '').trim(),
-      display_name: String(row.display_name || [row.first_name, row.last_name].filter(Boolean).join(' ')).trim()
+      first_name:   String(row[firstIdx]  || '').trim(),
+      last_name:    String(row[lastIdx]   || '').trim(),
+      display_name: String(row[dispIdx]   || '').trim(),
     });
   }
-
   return results;
 }
 
