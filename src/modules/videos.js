@@ -6,36 +6,44 @@ const { normalizeHebrewSearch, tokenizeHebrew, splitHolidayMulti, normalizeHolid
 const config = require('../config');
 
 // ── LIST KEY MATCHING ─────────────────────────────────────────────────────────
+// עמודות בגיליון: Bot Main Category, Bot Sub Category, Bot Rebbe
 
 function videoMatchesListKey(video, listKey) {
   const v = video || {};
-  const g = normalizeHebrewSearch(v['VD Categories'] || '');
-  const c = normalizeHebrewSearch(v['Bot Main Category'] || '');
-  const s = normalizeHebrewSearch(v['Bot Sub Category'] || '');
+  const main = normalizeHebrewSearch(v['Bot Main Category'] || '');
+  const sub  = normalizeHebrewSearch(v['Bot Sub Category']  || '');
 
   const eq = (a, b) => normalizeHebrewSearch(a) === normalizeHebrewSearch(b);
 
   switch (String(listKey || '')) {
-    case 'story_kedumim':     return eq(g, 'סיפורים') && eq(c, 'מקורות קדומים');
-    case 'story_chassidim':   return eq(g, 'סיפורים') && eq(c, 'סיפורי חסידים');
-    case 'moshiach_bring':    return eq(g, 'לחיות משיח') && eq(c, 'מביאים את משיח');
-    case 'moshiach_temple':   return eq(g, 'לחיות משיח') && eq(c, 'בית המקדש והגאולה');
-    case 'moshiach_rebbe':    return eq(g, 'לחיות משיח') && eq(c, 'הרבי כמלך המשיח');
-    case 'moshiach_geulah_life': return eq(g, 'לחיות משיח') && eq(c, 'חיים של גאולה');
-    case 'niggun_holidays':   return eq(g, 'זמן ניגונים') && eq(c, 'ניגוני חגים');
-    case 'niggun_moshiach':   return eq(g, 'זמן ניגונים') && eq(c, 'ניגוני משיח');
-    case 'niggun_simcha':     return eq(g, 'זמן ניגונים') && eq(c, 'ניגוני שמחה');
-    case 'niggun_dveikus':    return eq(g, 'זמן ניגונים') && eq(c, 'ניגוני דבקות');
-    case 'niggun_chabad':     return eq(g, 'זמן ניגונים') && eq(c, 'ניגוני חב״ד');
-    case 'topic_tzivos':      return eq(g, 'נושאים') && eq(c, 'צבאות השם');
-    case 'topic_hiskashrus':  return eq(g, 'נושאים') && eq(c, 'התקשרות לרבי');
-    case 'topic_middos':      return eq(g, 'נושאים') && eq(c, 'מידות טובות');
-    case 'topic_pride':       return eq(g, 'נושאים') && eq(c, 'גאווה יהודית');
-    case 'topic_torah':       return eq(g, 'נושאים') && eq(c, 'תורה ומצוות');
-    case 'topic_girls':       return eq(g, 'נושאים') && eq(c, 'בנות ישראל');
-    case 'topic_12psukim':    return eq(g, 'נושאים') && eq(c, 'י״ב הפסוקים');
-    case 'topic_weekly':      return eq(g, 'נושאים') && eq(c, 'התוכנית השבועית');
-    case 'topic_kids_action': return eq(g, 'נושאים') && eq(c, 'ילדים בפעולה');
+    // סיפורים
+    case 'story_kedumim':        return eq(main, 'שעת סיפור') && eq(sub, 'ממקורות קדומים');
+    case 'story_chassidim':      return eq(main, 'שעת סיפור') && eq(sub, 'סיפורי חסידים');
+
+    // לחיות משיח
+    case 'moshiach_bring':       return eq(main, 'לחיות משיח') && eq(sub, 'מביאים את משיח');
+    case 'moshiach_temple':      return eq(main, 'לחיות משיח') && eq(sub, 'בית המקדש והגאולה');
+    case 'moshiach_rebbe':       return eq(main, 'לחיות משיח') && eq(sub, 'הרבי כמלך המשיח');
+    case 'moshiach_geulah_life': return eq(main, 'לחיות משיח') && eq(sub, 'חיים של גאולה');
+
+    // ניגונים
+    case 'niggun_holidays':      return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני חגים וימי דפגרא');
+    case 'niggun_moshiach':      return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני משיח וגאולה');
+    case 'niggun_simcha':        return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני שמחה וריקוד');
+    case 'niggun_dveikus':       return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני דבקות והתעוררות');
+    case 'niggun_chabad':        return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני חב״ד קלאסיים');
+
+    // נושאים נוספים
+    case 'topic_tzivos':         return eq(main, 'נושאים נוספים') && eq(sub, 'צבאות השם');
+    case 'topic_hiskashrus':     return eq(main, 'נושאים נוספים') && eq(sub, 'התקשרות לרבי');
+    case 'topic_middos':         return eq(main, 'נושאים נוספים') && eq(sub, 'מידות טובות');
+    case 'topic_pride':          return eq(main, 'נושאים נוספים') && eq(sub, 'גאווה יהודית');
+    case 'topic_torah':          return eq(main, 'נושאים נוספים') && (eq(sub, 'תורה ומצוות') || eq(sub, 'תורה, תפילה ומצוות'));
+    case 'topic_girls':          return eq(main, 'נושאים נוספים') && eq(sub, 'בנות ישראל');
+    case 'topic_12psukim':       return eq(main, 'נושאים נוספים') && eq(sub, 'י״ב הפסוקים');
+    case 'topic_weekly':         return eq(main, 'נושאים נוספים') && eq(sub, 'התוכנית השבועית');
+    case 'topic_kids_action':    return eq(main, 'נושאים נוספים') && eq(sub, 'ילדים בפעולה');
+
     default: return false;
   }
 }
@@ -53,9 +61,9 @@ async function getItemsForListKey(listKey, state) {
   if (listKey.startsWith('rebbe:')) {
     const rebbeName = listKey.substring('rebbe:'.length);
     return index.filter(v =>
-      normalizeHebrewSearch(v['VD Categories']) === normalizeHebrewSearch('סיפורים') &&
-      normalizeHebrewSearch(v['Bot Main Category']) === normalizeHebrewSearch('רבותינו נשיאינו') &&
-      normalizeHebrewSearch(v['Bot Sub Category']) === normalizeHebrewSearch(rebbeName)
+      normalizeHebrewSearch(v['Bot Main Category']) === normalizeHebrewSearch('שעת סיפור') &&
+      normalizeHebrewSearch(v['Bot Sub Category'])  === normalizeHebrewSearch('רבותינו נשיאינו') &&
+      normalizeHebrewSearch(v['Bot Rebbe'])          === normalizeHebrewSearch(rebbeName)
     );
   }
 

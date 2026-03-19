@@ -36,7 +36,7 @@ async function getUpcomingHolidayEntries(limit = 3) {
     if (name === 'ספירת העומר' || name === 'ימי בין המצרים') continue;
     if (!(await holidayHasVideos(name))) continue;
 
-    const icon = String(row['Bot Icon'] || row['Icon'] || row['Emoji'] || '📅');
+    const icon = String(row['Display Emoji'] || row['Bot Icon'] || row['Icon'] || '📅');
     results.push({ name, startDate, icon });
   }
 
@@ -57,7 +57,7 @@ async function getAllHolidayEntries() {
     if (name.startsWith('חודש ')) continue;
 
     const startRaw = row['Start Date'];
-    const icon = String(row['Bot Icon'] || row['Icon'] || row['Emoji'] || '📅');
+    const icon = String(row['Display Emoji'] || row['Bot Icon'] || row['Icon'] || '📅');
     const baseDate = startRaw ? dayjs(startRaw) : dayjs('2099-01-01');
 
     let sortDate = dayjs().year(today.year()).month(baseDate.month()).date(baseDate.date());

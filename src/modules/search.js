@@ -52,16 +52,19 @@ async function searchKnowledge(messageText) {
 
   for (const row of rows) {
     if (String(row['Active'] || '').toUpperCase() === 'FALSE') continue;
-    const question = normalizeHebrewSearch(row['Question'] || '');
+    const question = normalizeHebrewSearch(row['Question Pattern'] || row['Question'] || '');
+    const keywords = normalizeHebrewSearch(row['Keywords'] || '');
     const answer = String(row['Answer'] || '').trim();
     if (!question || !answer) continue;
 
     let score = 0;
     for (const tok of tokens) {
       if (question.includes(tok)) score += 2;
+      if (keywords.includes(tok)) score += 1;
     }
     // Full phrase match bonus
     if (question.includes(q)) score += 5;
+    if (keywords.includes(q)) score += 3;
 
     if (score > bestScore && score >= 2) {
       bestScore = score;
