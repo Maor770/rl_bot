@@ -120,11 +120,12 @@ async function routeSelection(userId, id, title) {
 
     case 'main_niggun':
       return sendSimpleListMenu(userId, 'menu_niggun', '🎵 זמן ניגונים - בחרו נושא:', [
-        ['niggun_holidays', 'ניגוני חגים 📅',        'ניגונים של חגים ודפגרא'],
-        ['niggun_moshiach', 'ניגוני משיח 🚀',        'ניגוני גאולה ומשיח'],
-        ['niggun_simcha',   'ניגוני שמחה 🎉',        'שמחה וריקוד'],
-        ['niggun_dveikus',  'ניגוני דבקות 💓',       'התעוררות ורגש'],
-        ['niggun_chabad',   'ניגוני חב״ד 🎼',        'ניגונים קלאסיים'],
+        ['niggun_holidays', 'ניגוני חגים 📅',            'ניגונים של חגים ודפגרא'],
+        ['niggun_moshiach', 'ניגוני משיח וגאולה 🚀',     'ניגוני גאולה ומשיח'],
+        ['niggun_nesiim',   'ניגוני רבותינו נשיאינו 👑', 'ניגונים של הרביים'],
+        ['niggun_simcha',   'ניגוני שמחה 🎉',            'שמחה וריקוד'],
+        ['niggun_dveikus',  'ניגוני דבקות 💓',           'התעוררות ורגש'],
+        ['niggun_chabad',   'ניגוני חב״ד 🎼',            'ניגונים קלאסיים'],
       ]);
 
     case 'main_holidays':
@@ -179,6 +180,16 @@ async function routeSelection(userId, id, title) {
     case 'niggun_simcha':   return sendVideoListByKey(userId, 'niggun_simcha', '🎉 ניגוני שמחה וריקוד', 'menu_niggun');
     case 'niggun_dveikus':  return sendVideoListByKey(userId, 'niggun_dveikus', '💓 ניגוני דבקות והתעוררות', 'menu_niggun');
     case 'niggun_chabad':   return sendVideoListByKey(userId, 'niggun_chabad', '🎼 ניגוני חב״ד קלאסיים', 'menu_niggun');
+    case 'niggun_nesiim':
+      return sendSimpleListMenu(userId, 'menu_niggun_nesiim', '👑 ניגוני רבותינו נשיאינו - בחרו רבי:', [
+        ['niggun_rebbe:הרבי מלך המשיח', 'הרבי מלך המשיח 👑', ''],
+        ['niggun_rebbe:אדמו״ר הזקן',    'אדמו״ר הזקן ✨',    ''],
+        ['niggun_rebbe:הרבי הריי״צ',    'הרבי הריי״צ ✨',    ''],
+        ['niggun_rebbe:הבעש״ט',         'הבעש״ט ✨',         ''],
+        ['niggun_rebbe:הרבי הרש״ב',     'הרבי הרש״ב ✨',     ''],
+        ['niggun_rebbe:אדמו״ר האמצעי',  'אדמו״ר האמצעי ✨',  ''],
+        ['niggun_rebbe:הרבי מהר״ש',     'הרבי מהר״ש ✨',     ''],
+      ]);
 
     // Topics
     case 'topic_tzivos':      return sendVideoListByKey(userId, 'topic_tzivos', '🪖 צבאות השם', 'menu_topics');
@@ -236,6 +247,17 @@ async function routeSelection(userId, id, title) {
     default: {
       if (sid.startsWith('holiday:'))         return sendHolidayVideos(userId, sid.substring('holiday:'.length));
       if (sid.startsWith('rebbe:'))           return sendVideosByRebbe(userId, sid.substring('rebbe:'.length));
+      if (sid.startsWith('niggun_rebbe:')) {
+        const rebbeName = sid.substring('niggun_rebbe:'.length);
+        await db.setUserState(userId, {
+          lastMenu: 'menu_niggun_nesiim',
+          currentListKey: `niggun_rebbe:${rebbeName}`,
+          currentListTitle: `👑 ניגוני ${rebbeName}`,
+          currentOffset: 0,
+        });
+        const state = await db.getUserState(userId);
+        return sendCurrentVideoPage(userId, 0, state);
+      }
       if (sid.startsWith('select_child:'))    return game.showChildGameMenu(userId, sid.substring('select_child:'.length));
       if (sid.startsWith('do_mission:'))      return game.showActionMission(userId, sid.substring('do_mission:'.length));
       if (sid.startsWith('confirm_mission:')) return game.executeActionMission(userId, sid.substring('confirm_mission:'.length));
@@ -260,11 +282,12 @@ async function handleBackNavigation(userId) {
   const state = await db.getUserState(userId);
   const last = state.lastMenu || '';
   if (!last || last === 'home') return sendWelcomeAndMainMenu(userId);
-  if (last === 'holidays_root') return routeSelection(userId, 'main_holidays', '');
-  if (last === 'story_root')    return routeSelection(userId, 'main_story', '');
-  if (last === 'menu_moshiach') return routeSelection(userId, 'main_moshiach', '');
-  if (last === 'menu_niggun')   return routeSelection(userId, 'main_niggun', '');
-  if (last === 'menu_topics')   return routeSelection(userId, 'main_topics', '');
+  if (last === 'holidays_root')      return routeSelection(userId, 'main_holidays', '');
+  if (last === 'story_root')         return routeSelection(userId, 'main_story', '');
+  if (last === 'menu_moshiach')      return routeSelection(userId, 'main_moshiach', '');
+  if (last === 'menu_niggun')        return routeSelection(userId, 'main_niggun', '');
+  if (last === 'menu_niggun_nesiim') return routeSelection(userId, 'niggun_nesiim', '');
+  if (last === 'menu_topics')        return routeSelection(userId, 'main_topics', '');
   return sendWelcomeAndMainMenu(userId);
 }
 

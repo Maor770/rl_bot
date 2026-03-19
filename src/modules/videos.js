@@ -6,14 +6,17 @@ const { normalizeHebrewSearch, tokenizeHebrew, splitHolidayMulti, normalizeHolid
 const config = require('../config');
 
 // ── LIST KEY MATCHING ─────────────────────────────────────────────────────────
-// עמודות בגיליון: Bot Main Category, Bot Sub Category, Bot Rebbe
+// עמודות: Bot Main Category, Bot Sub Category, Bot Sub Category 2, Bot Rebbe
 
 function videoMatchesListKey(video, listKey) {
   const v = video || {};
-  const main = normalizeHebrewSearch(v['Bot Main Category'] || '');
-  const sub  = normalizeHebrewSearch(v['Bot Sub Category']  || '');
+  const main  = normalizeHebrewSearch(v['Bot Main Category']  || '');
+  const sub   = normalizeHebrewSearch(v['Bot Sub Category']   || '');
+  const sub2  = normalizeHebrewSearch(v['Bot Sub Category 2'] || '');
+  const rebbe = normalizeHebrewSearch(v['Bot Rebbe']          || '');
 
-  const eq = (a, b) => normalizeHebrewSearch(a) === normalizeHebrewSearch(b);
+  const eq  = (a, b) => normalizeHebrewSearch(a) === normalizeHebrewSearch(b);
+  const inSub = (val) => eq(sub, val) || eq(sub2, val);
 
   switch (String(listKey || '')) {
     // סיפורים
@@ -26,12 +29,13 @@ function videoMatchesListKey(video, listKey) {
     case 'moshiach_rebbe':       return eq(main, 'לחיות משיח') && eq(sub, 'הרבי כמלך המשיח');
     case 'moshiach_geulah_life': return eq(main, 'לחיות משיח') && eq(sub, 'חיים של גאולה');
 
-    // ניגונים
-    case 'niggun_holidays':      return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני חגים וימי דפגרא');
-    case 'niggun_moshiach':      return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני משיח וגאולה');
-    case 'niggun_simcha':        return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני שמחה וריקוד');
-    case 'niggun_dveikus':       return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני דבקות והתעוררות');
-    case 'niggun_chabad':        return eq(main, 'זמן ניגונים') && eq(sub, 'ניגוני חב״ד קלאסיים');
+    // ניגונים — בודק גם ב-Bot Sub Category 2
+    case 'niggun_holidays':  return eq(main, 'זמן ניגונים') && inSub('ניגוני חגים וימי דפגרא');
+    case 'niggun_moshiach':  return eq(main, 'זמן ניגונים') && inSub('ניגוני משיח וגאולה');
+    case 'niggun_simcha':    return eq(main, 'זמן ניגונים') && inSub('ניגוני שמחה וריקוד');
+    case 'niggun_dveikus':   return eq(main, 'זמן ניגונים') && inSub('ניגוני דבקות והתעוררות');
+    case 'niggun_chabad':    return eq(main, 'זמן ניגונים') && inSub('ניגוני חב״ד קלאסיים');
+    case 'niggun_nesiim':    return eq(main, 'זמן ניגונים') && inSub('ניגוני רבותינו נשיאינו');
 
     // נושאים נוספים
     case 'topic_tzivos':         return eq(main, 'נושאים נוספים') && eq(sub, 'צבאות השם');
@@ -60,11 +64,41 @@ async function getItemsForListKey(listKey, state) {
 
   if (listKey.startsWith('rebbe:')) {
     const rebbeName = listKey.substring('rebbe:'.length);
-    return index.filter(v =>
-      normalizeHebrewSearch(v['Bot Main Category']) === normalizeHebrewSearch('שעת סיפור') &&
-      normalizeHebrewSearch(v['Bot Sub Category'])  === normalizeHebrewSearch('רבותינו נשיאינו') &&
-      normalizeHebrewSearch(v['Bot Rebbe'])          === normalizeHebrewSearch(rebbeName)
-    );
+    const nRebbe = normalizeHebrewSearch(rebbeName);
+
+    // בדיקה אם זה תת-מסלול ניגוני רבותינו (prefix: niggun_rebbe:)
+    return index.filter(v => {
+      const main  = normalizeHebrewSearch(v['Bot Main Category']  || '');
+      const sub   = normalizeHebrewSearch(v['Bot Sub Category']   || '');
+      const sub2  = normalizeHebrewSearch(v['Bot Sub Category 2'] || '');
+      const rebbe = normalizeHebrewSearch(v['Bot Rebbe']          || '');
+
+      const isStoryRebbe = main === normalizeHebrewSearch('שעת סיפור') &&
+                           sub  === normalizeHebrewSearch('רבותינו נשיאינו') &&
+                           rebbe === nRebbe;
+
+      const isNigunRebbe = main === normalizeHebrewSearch('זמן ניגונים') &&
+                           (sub === normalizeHebrewSearch('ניגוני רבותינו נשיאינו') ||
+                            sub2 === normalizeHebrewSearch('ניגוני רבותינו נשיאינו')) &&
+                           rebbe === nRebbe;
+
+      return isStoryRebbe || isNigunRebbe;
+    });
+  }
+
+  if (listKey.startsWith('niggun_rebbe:')) {
+    const rebbeName = listKey.substring('niggun_rebbe:'.length);
+    const nRebbe = normalizeHebrewSearch(rebbeName);
+    return index.filter(v => {
+      const main  = normalizeHebrewSearch(v['Bot Main Category']  || '');
+      const sub   = normalizeHebrewSearch(v['Bot Sub Category']   || '');
+      const sub2  = normalizeHebrewSearch(v['Bot Sub Category 2'] || '');
+      const rebbe = normalizeHebrewSearch(v['Bot Rebbe']          || '');
+      return main === normalizeHebrewSearch('זמן ניגונים') &&
+             (sub === normalizeHebrewSearch('ניגוני רבותינו נשיאינו') ||
+              sub2 === normalizeHebrewSearch('ניגוני רבותינו נשיאינו')) &&
+             rebbe === nRebbe;
+    });
   }
 
   return index.filter(v => videoMatchesListKey(v, listKey));
@@ -81,7 +115,6 @@ function getVideoLink(item) {
 async function sendCurrentVideoPage(userId, offset, state, prefetchedItems = null) {
   const listTitle = state.currentListTitle || 'וידאוים';
   const safeOffset = Math.max(0, Number(offset || 0));
-
   const items = prefetchedItems || await getItemsForListKey(state.currentListKey, state);
   const pageSize = items.length <= 12 ? 12 : 10;
   const page = items.slice(safeOffset, safeOffset + pageSize);
@@ -110,7 +143,7 @@ async function sendCurrentVideoPage(userId, offset, state, prefetchedItems = nul
   lines.push('');
 
   const key = String(state.currentListKey || '');
-  if (key.startsWith('story_') || key.startsWith('rebbe:')) {
+  if (key.startsWith('story_') || (key.startsWith('rebbe:') && !key.startsWith('niggun_rebbe:'))) {
     lines.push('🎨 הידעת? כמעט לכל תוכניות הסיפורים שלנו יש גם דפי צביעה להורדה!');
     lines.push('🖍️ אפשר לחפש באתר במדור "דפי צביעה".');
     lines.push('');
@@ -120,7 +153,6 @@ async function sendCurrentVideoPage(userId, offset, state, prefetchedItems = nul
   lines.push(`📲 לחיפוש מהיר ונוח בוואטסאפ:\nhttps://wa.me/${config.BOT_PUBLIC_WHATSAPP_NUMBER}?text=שלום`);
 
   await wa.sendTextAndLog(userId, lines.join('\n'), { action: 'video_results', list_key: key, offset: safeOffset, total: items.length });
-
   await db.setUserState(userId, { currentOffset: safeOffset });
   await sendNavigationButtons(userId, safeOffset + pageSize < items.length);
 }
